@@ -1,0 +1,12 @@
+Learn about the HTTP protocol:
+  - Requests
+  - Responses
+  - Methods
+
+Learn about the CGI
+
+Learn about the external functions
+
+Learn about how sockets and non-blocking fd
+
+Test nginx to check response headers

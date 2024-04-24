@@ -41,6 +41,7 @@ The Webserv project involves building a minimalistic web server capable of handl
 
 - [Larrain Gonzalez](https://github.com/lagonzal)
 - [Victor Zayas](https://github.com/victor-zayas)
+- [Nozomi Imai](https://github.com/inozo22)
 
 ## License
 

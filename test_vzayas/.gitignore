@@ -1,0 +1,11 @@
+*.o
+*.a
+*.exe
+*.out
+test
+webserv
+*.rpt
+*.dSYM
+.DS_Store
+.vscode/*
+obj/

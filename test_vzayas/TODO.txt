@@ -1,0 +1,23 @@
+Brief explanation of this test folder:
+
+This forlder is divided on 2 parts/folder, first is the server_folder with will have all srcs/ and http error pages,
+and the admin_folder witch will have all files of the website and its own management.
+
++Server_folder: in this folder will be all server files.
+
+    *Http_folder: contains HTTP error pages and route to uploaded CGI
+
+    *SRCS_folder: contains all *.cpp files and will be divided in 3 folders.
+        
+        -Classes: it will contain all *.hpp and *.cpp classes files
+        -Main: only the main.cpp file.
+        -Parser: in this folder will be all error management files.
+
++Admin_folder: contains all website files, includin its own error pages witch are different from the server part and
+it will have 3 folders.
+
+    *Custom_error: all custom error pages for the website.
+    
+    *Admin_web: all files of the webpage.
+
+    *config_files: diferent config_files to test.

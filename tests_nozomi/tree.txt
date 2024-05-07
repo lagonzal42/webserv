@@ -1,0 +1,17 @@
+.
+├── Makefile
+├── docs
+│   ├── cgi-files
+│   │   └── cgi.sh
+│   ├── conf
+│   │   └── default.conf
+│   ├── index.html
+│   ├── upload
+│   │   └── upload_file.txt
+│   └── www
+│       ├── default.html
+│       └── virtual.html
+├── inc
+├── obj
+├── src
+└── webserv

@@ -7,7 +7,7 @@
 #include <algorithm>
 
 // this libraries are for Codespaces
-#include <string.h>
+#include <cstring>
 #include <cstdio>
 
 // Creating two server sockets, serverSocket1 for port 8080 and serverSocket2 for port 8081. 

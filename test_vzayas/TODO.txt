@@ -5,7 +5,7 @@ and the admin_folder witch will have all files of the website and its own manage
 
 +Server_folder: in this folder will be all server files.
 
-    *Http_folder: contains HTTP error pages and route to uploaded CGI
+    *Http_folder: contains HTTP error pages and folder to uploaded CGI
 
     *SRCS_folder: contains all *.cpp files and will be divided in 3 folders.
         

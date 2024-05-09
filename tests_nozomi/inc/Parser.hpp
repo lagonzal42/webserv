@@ -18,14 +18,6 @@
 class Parser
 {
 	public:
-			Parser( void );
-			Parser( std::string const & conf );
-			~Parser( void );
-			Parser( Parser const & src );
-			Parser & operator=( Parser const & src );
-			bool	parse( void );
-
-	private:
 //--- structs ---//
 			struct Location
 			{
@@ -44,18 +36,34 @@ class Parser
 				std::string root;
 				std::vector<Location> locations;
 				std::string	host;
-				int			port;
+				std::string	port;
 			};
 //--- structs ---//
+
+			Parser( void );
+			Parser( std::string const & conf );
+			~Parser( void );
+			Parser( Parser const & src );
+			Parser & operator=( Parser const & src );
+			bool	parse( void );
+
+	private:
 			std::string	_conf_file;
+
 			//As we don't know how many servers we will have, use a map to store them.
 			//make a temp server and add to the map when we know port and index
+			//MAYBE I will put std::string, like port number + server_name to identify.
 			std::map<int, Server> _servers;
 			void	serverSetting( std::istringstream & iss, Server & server );
 			void	parseByLine( std::string const & line, int & listeningPort );
 			// WIP
 			Location	processLocation( std::string const & block );
-			Server		processServer( std::string const & block );
+			Server		processServer( std::string const & block, Server tempServer );
+			// Server		processServer( std::string const & block );
+			void	obtainServerInfo(Server tempServer, std::string const & line);
+
+			std::string	extractNumbers(std::string const & str);
+			std::string	extractWord(std::string const & str, std::string const & key);
 
 
 	protected:

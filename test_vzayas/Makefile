@@ -13,9 +13,8 @@ YELLOW=\033[0;33m
 MAG=\033[0;35m
 END=\033[0m
 
-
 # SRCS #
-SRCDIR := src/
+SRCDIR := server/src/
 
 MAIN = main
 
@@ -28,7 +27,7 @@ OBJDIR := obj/
 OBJS := $(addprefix $(OBJDIR), $(PLAIN_SRCS:.cpp=.o))
 
 # COMPILATION #
-.SILENT:
+#.SILENT:
 all: $(NAME)
 
 $(NAME): $(OBJS)

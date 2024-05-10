@@ -5,6 +5,7 @@
 
 // --- Functions for Orthodox canonical class form --- //
 
+
 Parser::Parser( void ): _conf_file("configurations/default.conf")
 {
 	std::cout << _conf_file << ": Called default constructor!" << std::endl;
@@ -43,9 +44,76 @@ Parser::Parser( std::string const & conf ): _conf_file(conf)
 Parser::Location	Parser::processLocation( std::string const & block )
 {
 	Location	ret;
+//=== TEST ===//
 	std::cout << GREEN "I'm in processLocation!" << std::endl;
 	std::cout << block << RESET << std::endl;
-	(void)block;
+//=== TEST ===//
+
+	std::istringstream iss(block);
+	std::string line;
+	ret.autoindex = false;
+
+	// std::string	name;
+	// std::string root; //root
+	// std::string	index; //index
+	// // std::string methods;
+	// std::vector<std::string> methods; //method GET, POST OR DELETE
+	// std::string	cgi_path; //cgi_path
+	// std::string	upload_path; //upload_path
+	// std::string	redirect;
+	// bool		autoindex; // autoindex
+
+	while (std::getline(iss, line))
+	{
+		if (!line.length() || line.find('#') != std::string::npos || line.find('}') != std::string::npos || line.find_first_not_of("}\t\v\n\r\f") == std::string::npos)
+			continue ;
+		std::string	info[7] = {"location", "method", "root", "autoindex", "upload_path", "cgi_path", "index"};
+		int	i = 0;
+		for (i = 0; i < 7; i++)
+		{
+			if (line.find(info[i]) != std::string::npos)
+				break ;
+		}
+		switch (i)
+		{
+		case 0://location
+				ret.name = extractWord(line, info[i]);//location / {   ==> I have to remove {
+				break ;
+		case 1://method	
+				ret.methods = obtainMethod(line);
+				break ;
+		case 2://root
+				ret.root = extractWord(line, info[i]);
+				break ;
+		case 3://autoindex ***I have to return bool
+				if (line.find("on") != std::string::npos)
+					ret.autoindex = true;
+				break ;
+		case 4://upload_path
+				ret.upload_path = extractWord(line, info[i]);
+				break ;
+		case 5://cgi_path
+				ret.cgi_path = extractWord(line, info[i]);
+				break ;
+		case 6://index
+				ret.index = extractWord(line, info[i]);
+				break ;
+		default: std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
+			break ;
+		}
+	}
+//=== TEST ===//
+	std::cout << "ret.name: " << ret.name << std::endl;
+	std::cout << "ret.root: " << ret.root << std::endl;
+	std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
+	std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
+	std::cout << "ret.index: " << ret.index << std::endl;
+	std::cout << "ret.methods: ";
+	for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
+		std::cout << *it << " ";
+	std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
+//=== TEST ===//
+
 	return ret;
 }
 Parser::Server		Parser::processServer( std::string const & block, Parser::Server tempServer )
@@ -120,10 +188,48 @@ void	Parser::serverSetting(std::istringstream & iss, Server & server)
 	std::cout << "listen: " << server.port << std::endl;
 }
 
-void	Parser::obtainServerInfo(Parser::Server tempServer, std::string const & line)
+// std::string	name; //server_name
+// std::string root; //root
+// std::vector<Location> locations; //location /
+// std::string	host; 
+// std::string	port; //listen
+void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & line)
 {
-	(void)tempServer;
-	(void)line;
+
+	std::string	info[3] = {"listen", "server_name", "root"};
+	int	i = 0;
+	for (i = 0; i < 3; i++)
+	{
+		if (line.find(info[i]) != std::string::npos)
+			break ;
+	}
+	switch (i)
+	{
+	case 0:
+			tempServer->port = extractNumbers(line);
+			break ;
+	case 1:
+			tempServer->name = extractWord(line, "server_name");
+			break ;
+	case 2:
+			tempServer->root = extractWord(line, "root");
+			break ;
+	default: std::cout << RED << line << ": It's not in server block. I will put an exception" RESET << std::endl;
+		break ;
+	}
+}
+
+std::vector<std::string> Parser::obtainMethod(std::string const & line)
+{
+	std::vector<std::string>	ret;
+	std::string	methods[3] = {"GET", "POST", "DELETE"};
+	int	i;
+	for (i = 0; i < 3; i++)
+	{
+		if (line.find(methods[i]) != std::string::npos)
+			ret.push_back(methods[i]);
+	}
+	return ret;
 }
 
 
@@ -134,30 +240,32 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 	static bool inServerBlock = false; // Flag to indicate whether we are currently inside a server block
 	static bool inLocationBlock = false; // Flag to indicate whether we are currently inside a location block
 	static Server tempServer;
-	// static int	index = 0;
 	(void)listeningPort;
-	// std::cout << BLUE "Oh?\ninServerBlock: " << inServerBlock << "\ninLocationBlock: " << inLocationBlock << RESET <<  std::endl;
 
-//When it's not in the sever block, but start location block, how treat it, error or exeption?
-
+	// Skip if it's empty line
+	if (!line.length() || line.find_first_not_of("\t\v\n\r\f") == std::string::npos)
+		return ;
 	// When you find the keyword "server", you will enter to the serverBlock
 	if (line.find("server") != std::string::npos && line.find('{') != std::string::npos)
 	{
 		inServerBlock = true; // Start of a new block
 		serverBlock += line; // Initialize the server block with the current line
+		serverBlock += "\n"; // 
 		return;
 	}
 	else if (line.find("location") != std::string::npos && line.find('{') != std::string::npos)
 	{
 		inLocationBlock = true; // Start of a new block
 		locationBlock += line; // Initialize the location block with the current line
-		serverBlock += line; // Maybe I do not need it.
+		serverBlock += line; // Maybe I do not need it.		locationBlock += line; // Initialize the location block with the current line
+		locationBlock += "\n"; // 
+		serverBlock += "\n"; // 
 		return;
 	}
 	if (inServerBlock && !inLocationBlock)
 	{
-		serverBlock += line;
-		obtainServerInfo(tempServer, line);
+		serverBlock += line; 
+		serverBlock += "\n"; // 
 		// Check if we have reached the end of the block
 		if (line.find('}') != std::string::npos)
 		{
@@ -170,13 +278,17 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 			// --- Initialization for the next block --- //
 			inServerBlock = false; // End of the block
 			serverBlock = ""; // Initialized string after obtaining server
+			tempServer = Server(); // Initialized server structure
+			return ;
 		}
+		obtainServerInfo(&tempServer, line);
 	}
 	if (inLocationBlock)
 	{
 		serverBlock += line; // Concatenate the current line to the block
 		locationBlock += line;
-
+		locationBlock += "\n"; // 
+		serverBlock += "\n"; // 
 		// Check if we have reached the end of the block
 		if (line.find('}') != std::string::npos)
 		{
@@ -189,37 +301,6 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 			locationBlock = ""; // Initialized string after obtaining location
 		}
 	}
-
-	// --- If it's not in the location block, I can select from 2, extractNumber or extractWord... --- //
-/*	else if (line.find("listen") != std::string::npos && inServerBlock)
-	{
-		//How will I control ports?
-		std::cout << YELLOW "listen: " << line << std::endl;
-		tempServer.port = extractNumbers(line);
-		std::cout << tempServer.port << RESET << std::endl;
-		serverBlock += line; // Concatenate the current line to the block
-		return;
-	}
-	else if (line.find("server_name") != std::string::npos && inServerBlock)
-	{
-		//How will I control ports?
-		std::cout << YELLOW "server_name: " << line << std::endl;
-		tempServer.name = extractWord(line, "server_name");
-		std::cout << tempServer.name << RESET << std::endl;
-		serverBlock += line; // Concatenate the current line to the block
-		return;
-	}
-	else if (line.find("server_name") != std::string::npos && inServerBlock)
-	{
-		//How will I control ports?
-		std::cout << YELLOW "server_name: " << line << std::endl;
-		tempServer.name = extractWord(line, "server_name");
-		std::cout << tempServer.name << RESET << std::endl;
-		serverBlock += line; // Concatenate the current line to the block
-		return;
-	}*/
-	// When you find the keyword "location", you will enter to the locationBlock
-// To check location blocks
 }
 
 bool	Parser::parse( void )
@@ -241,13 +322,23 @@ bool	Parser::parse( void )
 	return true;
 }
 
+	// --- Getter functions --- //
+std::map<int, Parser::Server>	const & Parser::getServers( void ) const
+{
+	return this->_servers;
+}
+std::string	const & Parser::getConfFile( void ) const
+{
+	return this->_conf_file;
+}
+	// --- Getter functions --- //
+
 // --- Member functions --- //
 
 
 std::ostream	&operator<<(std::ostream & os, Parser const & obj)
 {
-	(void)obj;
-	os << "Parsed: ";
+	os << "_conf_file: " << obj.getConfFile() << "\n_servers:\n";
 	return os;
 }
 

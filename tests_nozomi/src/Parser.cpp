@@ -5,7 +5,6 @@
 
 // --- Functions for Orthodox canonical class form --- //
 
-
 Parser::Parser( void ): _conf_file("configurations/default.conf")
 {
 	std::cout << _conf_file << ": Called default constructor!" << std::endl;
@@ -41,17 +40,30 @@ Parser::Parser( std::string const & conf ): _conf_file(conf)
 	std::cout << _conf_file << ": Called constructor!" << std::endl;
 }
 
+size_t	Parser::obtainSizeFromStr(std::string const & num)
+{
+	size_t	ret = 0;
+	std::istringstream iss(num);
+	if (!(iss >> ret))
+	{
+		std::cerr << "convert error." << std::endl;
+		return 1; //put exception, end will never get return when it returns error
+	}
+	return ret;
+}
+
 Parser::Location	Parser::processLocation( std::string const & block )
 {
 	Location	ret;
 //=== TEST ===//
-	std::cout << GREEN "I'm in processLocation!" << std::endl;
-	std::cout << block << RESET << std::endl;
+	// std::cout << GREEN "I'm in processLocation!" << std::endl;
+	// std::cout << block << RESET << std::endl;
 //=== TEST ===//
 
 	std::istringstream iss(block);
 	std::string line;
 	ret.autoindex = false;
+	ret.max_body_size = 0;
 
 	// std::string	name;
 	// std::string root; //root
@@ -62,14 +74,16 @@ Parser::Location	Parser::processLocation( std::string const & block )
 	// std::string	upload_path; //upload_path
 	// std::string	redirect;
 	// bool		autoindex; // autoindex
-
+	// size_t		max_body_size; //max body size
 	while (std::getline(iss, line))
 	{
-		if (!line.length() || line.find('#') != std::string::npos || line.find('}') != std::string::npos || line.find_first_not_of("}\t\v\n\r\f") == std::string::npos)
+		std::string num;
+
+		if (!line.length() || line.find('}') != std::string::npos || line.find_first_not_of("}\t\v\n\r\f") == std::string::npos)
 			continue ;
-		std::string	info[7] = {"location", "method", "root", "autoindex", "upload_path", "cgi_path", "index"};
+		std::string	info[8] = {"location", "method", "root", "autoindex", "upload_path", "cgi_path", "index", "max_body_size"};
 		int	i = 0;
-		for (i = 0; i < 7; i++)
+		for (i = 0; i < 8; i++)
 		{
 			if (line.find(info[i]) != std::string::npos)
 				break ;
@@ -98,31 +112,45 @@ Parser::Location	Parser::processLocation( std::string const & block )
 		case 6://index
 				ret.index = extractWord(line, info[i]);
 				break ;
+		case 7://max_body_size
+				num = extractNumbers(line);
+				ret.max_body_size = obtainSizeFromStr(num);
+				break ;
 		default: std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
 			break ;
 		}
 	}
 //=== TEST ===//
-	std::cout << "ret.name: " << ret.name << std::endl;
-	std::cout << "ret.root: " << ret.root << std::endl;
-	std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
-	std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
-	std::cout << "ret.index: " << ret.index << std::endl;
-	std::cout << "ret.methods: ";
-	for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
-		std::cout << *it << " ";
-	std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
+	// std::cout << "ret.name: " << ret.name << std::endl;
+	// std::cout << "ret.root: " << ret.root << std::endl;
+	// std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
+	// std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
+	// std::cout << "ret.index: " << ret.index << std::endl;
+	// std::cout << "ret.methods: ";
+	// for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
+	// 	std::cout << *it << " ";
+	// std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
+	// std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
 //=== TEST ===//
 
 	return ret;
 }
 Parser::Server		Parser::processServer( std::string const & block, Parser::Server tempServer )
 {
-	std::cout << CYAN "I'm in processServer!" << std::endl;
-	std::cout << block << RESET << std::endl;
+//=== TEST ===//
+	// std::cout << CYAN "I'm in processServer!" << std::endl;
+	// std::cout << block << RESET << std::endl;
+//=== TEST ===//
 	Server ret;
 	(void)block;
-	(void)tempServer;
+	if (tempServer.port != "0") // It should not be empty, maybe it is not needed
+	{
+		ret.host = tempServer.host;
+		ret.locations = tempServer.locations;
+		ret.name = tempServer.name;
+		ret.port = tempServer.port;
+		ret.root = tempServer.root;
+	}
 	return ret;
 }
 
@@ -162,59 +190,41 @@ std::string	Parser::extractWord(std::string const & str, std::string const & key
 				continue ;
 			}
 		}
-		if (foundKey && foundSpace && *it != ';')
+		if (foundKey && foundSpace && *it != ';' && *it != '{' && *it != ' ')
 			ret.push_back(*it);
 	}
 	return ret;
 }
 
-
-// Looks better than obtainSeverInfo, but I still have to remove ';' and I cannot catch more than one token
-void	Parser::serverSetting(std::istringstream & iss, Server & server)
-{
-	std::string	token;
-	while (iss >> token && token != "}")
-	{
-		std::cout << "token: " << token << std::endl;
-		if (token == "server_name")
-			iss >> server.name;
-		else if (token == "root")
-			iss >> server.root;
-		else if (token == "listen")
-			iss >> server.port;
-	}
-	std::cout << "after parsing: name: " << server.name << std::endl;
-	std::cout << "root: " << server.root << std::endl;
-	std::cout << "listen: " << server.port << std::endl;
-}
-
-// std::string	name; //server_name
-// std::string root; //root
-// std::vector<Location> locations; //location /
-// std::string	host; 
-// std::string	port; //listen
 void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & line)
 {
-
 	std::string	info[3] = {"listen", "server_name", "root"};
 	int	i = 0;
+	std::string temp = line;
+	std::replace(temp.begin(), temp.end(), '\r', ' ');
+
 	for (i = 0; i < 3; i++)
 	{
-		if (line.find(info[i]) != std::string::npos)
+		if (temp.find(info[i]) != std::string::npos)
 			break ;
 	}
 	switch (i)
 	{
 	case 0:
-			tempServer->port = extractNumbers(line);
+			tempServer->port = extractNumbers(temp);
+			tempServer->name = tempServer->port;
 			break ;
 	case 1:
-			tempServer->name = extractWord(line, "server_name");
+			tempServer->host = extractWord(temp, "server_name");
+			if (tempServer->name != "")
+				tempServer->name = tempServer->host + ":" + tempServer->port;
+			else
+				tempServer->name = tempServer->host;
 			break ;
 	case 2:
-			tempServer->root = extractWord(line, "root");
+			tempServer->root = extractWord(temp, "root");
 			break ;
-	default: std::cout << RED << line << ": It's not in server block. I will put an exception" RESET << std::endl;
+	default: std::cout << RED << temp << ": It's not in server block. I will put an exception" RESET << std::endl;
 		break ;
 	}
 }
@@ -243,14 +253,15 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 	(void)listeningPort;
 
 	// Skip if it's empty line
-	if (!line.length() || line.find_first_not_of("\t\v\n\r\f") == std::string::npos)
+	if (!line.length() || line.find_first_not_of("\t\v\n\r\f") == std::string::npos || line.find('#') != std::string::npos)
 		return ;
+
 	// When you find the keyword "server", you will enter to the serverBlock
 	if (line.find("server") != std::string::npos && line.find('{') != std::string::npos)
 	{
 		inServerBlock = true; // Start of a new block
 		serverBlock += line; // Initialize the server block with the current line
-		serverBlock += "\n"; // 
+		serverBlock += "\n";
 		return;
 	}
 	else if (line.find("location") != std::string::npos && line.find('{') != std::string::npos)
@@ -258,8 +269,8 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 		inLocationBlock = true; // Start of a new block
 		locationBlock += line; // Initialize the location block with the current line
 		serverBlock += line; // Maybe I do not need it.		locationBlock += line; // Initialize the location block with the current line
-		locationBlock += "\n"; // 
-		serverBlock += "\n"; // 
+		locationBlock += "\n";
+		serverBlock += "\n";
 		return;
 	}
 	if (inServerBlock && !inLocationBlock)
@@ -269,16 +280,26 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 		// Check if we have reached the end of the block
 		if (line.find('}') != std::string::npos)
 		{
-			std::replace(serverBlock.begin(), serverBlock.end(), '\r', '\n');
+		//=== TEST ===// I can remove this when I don't print
+			// std::replace(serverBlock.begin(), serverBlock.end(), '\r', '\n');
+		//=== TEST ===//
+		//=== TEST ===//
+			// std::cout << YELLOW << std::endl;
+			// std::cout << "tempServer.name: " << tempServer.name << std::endl;
+			// std::cout << "tempServer.root: " << tempServer.root << std::endl;
+			// std::cout << "tempServer.host: " << tempServer.host << std::endl;
+			// std::cout << "tempServer.port: " << tempServer.port << RESET << std::endl;
+		//=== TEST ===//
 			// Now 'serverBlock' contains the entire block, process it here
 			// Pass tempServer to obtain infos that has, then make the new one to put to _servers
 			Server newServer = processServer(serverBlock, tempServer);
 //			It's not implemented yet
-//			this->_servers.insert(std::pair<int, Server>(tempServer.getIndex), newServer);
+			this->_servers[tempServer.name] = newServer;
+			// this->_servers.insert(std::pair<std::string, Parser::Server>(tempServer.name, newServer));
 			// --- Initialization for the next block --- //
-			inServerBlock = false; // End of the block
-			serverBlock = ""; // Initialized string after obtaining server
-			tempServer = Server(); // Initialized server structure
+			inServerBlock = false;
+			serverBlock = "";
+			tempServer = Server();
 			return ;
 		}
 		obtainServerInfo(&tempServer, line);
@@ -287,18 +308,17 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 	{
 		serverBlock += line; // Concatenate the current line to the block
 		locationBlock += line;
-		locationBlock += "\n"; // 
-		serverBlock += "\n"; // 
+		locationBlock += "\n";
+		serverBlock += "\n";
 		// Check if we have reached the end of the block
 		if (line.find('}') != std::string::npos)
 		{
 			std::replace(locationBlock.begin(), locationBlock.end(), '\r', '\n');
-			// Now 'locationBlock' contains the entire block, process it here
 			Location tempLocation= processLocation(locationBlock);
-			// this->tempServer.locations.push_back(tempLocation);
+			tempServer.locations.push_back(tempLocation);
 			// --- Initialization for the next block --- //
-			inLocationBlock = false; // End of the block
-			locationBlock = ""; // Initialized string after obtaining location
+			inLocationBlock = false;
+			locationBlock = "";
 		}
 	}
 }
@@ -323,7 +343,7 @@ bool	Parser::parse( void )
 }
 
 	// --- Getter functions --- //
-std::map<int, Parser::Server>	const & Parser::getServers( void ) const
+std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 {
 	return this->_servers;
 }
@@ -336,9 +356,40 @@ std::string	const & Parser::getConfFile( void ) const
 // --- Member functions --- //
 
 
-std::ostream	&operator<<(std::ostream & os, Parser const & obj)
+std::ostream &operator<<(std::ostream &os, const Parser &obj)
 {
-	os << "_conf_file: " << obj.getConfFile() << "\n_servers:\n";
+	os << "_conf_file: " << obj.getConfFile() << "\n_servers: \n";
+
+	// Iterate through the servers
+	std::map<std::string, Parser::Server>::const_iterator server_iter;
+	for (server_iter = obj.getServers().begin(); server_iter != obj.getServers().end(); ++server_iter)
+	{
+		// const std::string &server_name = server_iter->first;
+		const Parser::Server &server = server_iter->second;
+
+		os << YELLOW "Server name: " << server.name << "\n";
+		os << "host: " << server.host << "\n";
+		os << "port: " << server.port << "\n";
+		os << "root: " << server.root << RESET "\n";
+		os << MAGENTA "locations: \n";
+
+		// Iterate through the locations of the current server
+		std::vector<Parser::Location>::const_iterator location_iter;
+		for (location_iter = server.locations.begin(); location_iter != server.locations.end(); ++location_iter)
+		{
+			const Parser::Location &location = *location_iter;
+			os << MAGENTA "name: " << location.name << RESET "\n";
+			os << "root: " << location.root << "\n";
+			os << "index: " << location.index << "\n";
+			os << "cgi_path: " << location.cgi_path << "\n";
+			os << "upload_path: " << location.upload_path << "\n";
+			os << "redirect: " << location.redirect << "\n";
+			os << "autoindex: " << location.autoindex << "\n";
+			os << "max_body_size: " << location.max_body_size << "\n";
+		}
+	}
+
 	return os;
 }
+
 

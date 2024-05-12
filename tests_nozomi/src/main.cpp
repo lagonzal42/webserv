@@ -12,6 +12,9 @@ int	main(int argc, char *argv[])
 		std::cout << "Yuppiii!!!!" << std::endl;
 	else
 		std::cout << RED "Parsing Failed!!!!" RESET << std::endl;
+	std::cout << GREEN "===>>> print test <<<===" << std::endl;
+	std::cout << parser << RESET << std::endl;
+	
 	//set sockets
 
 	// while (1)

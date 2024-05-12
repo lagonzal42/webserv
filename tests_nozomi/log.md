@@ -1,10 +1,13 @@
-TODO: Check if tempServer initialized after obtain a server
-TODO: Obtain location root without "{"
+TODO: Remove unused argument 
+NEXT: Put exception
 
-NEXT: Check if igunore comments with #
+
 
 ===========================================
 DONE: Check white spaces in location. 
+DONE: Check if igunore comments with #
+DONE: Obtain location root without "{"
+DONE: Check if tempServer initialized after obtain a server
 
 
 ===========================================

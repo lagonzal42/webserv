@@ -36,6 +36,7 @@ class Parser
 				std::string	upload_path; //upload_path
 				std::string	redirect;
 				bool		autoindex; // autoindex
+				size_t		max_body_size; //max body size
 			};
 			struct Server
 			{
@@ -55,7 +56,7 @@ class Parser
 			Parser( Parser const & src );
 			Parser & operator=( Parser const & src );
 			bool	parse( void );
-			std::map<int, Server>	const & getServers( void ) const;
+			std::map<std::string, Server>	const & getServers( void ) const;
 			std::string	const & getConfFile( void ) const;
 
 	private:
@@ -64,7 +65,7 @@ class Parser
 			//As we don't know how many servers we will have, use a map to store them.
 			//make a temp server and add to the map when we know port and index
 			//MAYBE I will put std::string, like port number + server_name to identify.
-			std::map<int, Server> _servers;
+			std::map<std::string, Server> _servers;
 			void	serverSetting( std::istringstream & iss, Server & server );
 			void	parseByLine( std::string const & line, int & listeningPort );
 			// WIP
@@ -76,7 +77,7 @@ class Parser
 			std::string	extractNumbers(std::string const & str);
 			std::string	extractWord(std::string const & str, std::string const & key);
 			std::vector<std::string> obtainMethod(std::string const & line);
-
+			size_t	obtainSizeFromStr(std::string const & num);
 	protected:
 
 

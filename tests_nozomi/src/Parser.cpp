@@ -2,6 +2,8 @@
 #include "Parser.hpp"
 #include "colors.h"
 #include <algorithm>
+#include <iomanip>
+#include <stdexcept>
 
 // --- Functions for Orthodox canonical class form --- //
 
@@ -46,8 +48,9 @@ size_t	Parser::obtainSizeFromStr(std::string const & num)
 	std::istringstream iss(num);
 	if (!(iss >> ret))
 	{
-		std::cerr << "convert error." << std::endl;
-		return 1; //put exception, end will never get return when it returns error
+		throw std::runtime_error("Failed to convert string to size_t in obtainSizeFromStr()");
+		// std::cerr << "convert error." << std::endl;
+		// return 1; //put exception, end will never get return when it returns error
 	}
 	return ret;
 }
@@ -116,8 +119,9 @@ Parser::Location	Parser::processLocation( std::string const & block )
 				num = extractNumbers(line);
 				ret.max_body_size = obtainSizeFromStr(num);
 				break ;
-		default: std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
-			break ;
+		default: throw std::runtime_error("Unknown block type encountered: " + line);
+		// std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
+			// break ;
 		}
 	}
 //=== TEST ===//
@@ -135,14 +139,13 @@ Parser::Location	Parser::processLocation( std::string const & block )
 
 	return ret;
 }
-Parser::Server		Parser::processServer( std::string const & block, Parser::Server tempServer )
+Parser::Server		Parser::processServer( Parser::Server tempServer )
 {
 //=== TEST ===//
 	// std::cout << CYAN "I'm in processServer!" << std::endl;
 	// std::cout << block << RESET << std::endl;
 //=== TEST ===//
 	Server ret;
-	(void)block;
 	if (tempServer.port != "0") // It should not be empty, maybe it is not needed
 	{
 		ret.host = tempServer.host;
@@ -224,7 +227,8 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 	case 2:
 			tempServer->root = extractWord(temp, "root");
 			break ;
-	default: std::cout << RED << temp << ": It's not in server block. I will put an exception" RESET << std::endl;
+	default: throw std::runtime_error("Unknown block type encountered: " + temp);
+		// std::cout << RED << temp << ": It's not in server block. I will put an exception" RESET << std::endl;
 		break ;
 	}
 }
@@ -243,14 +247,13 @@ std::vector<std::string> Parser::obtainMethod(std::string const & line)
 }
 
 
-void	Parser::parseByLine(std::string const & line, int & listeningPort)
+void	Parser::parseByLine(std::string const & line)
 {
 	static std::string serverBlock = ""; // Static variable to hold the current server block being parsed
 	static std::string locationBlock = ""; // Static variable to hold the current location block being parsed
 	static bool inServerBlock = false; // Flag to indicate whether we are currently inside a server block
 	static bool inLocationBlock = false; // Flag to indicate whether we are currently inside a location block
 	static Server tempServer;
-	(void)listeningPort;
 
 	// Skip if it's empty line
 	if (!line.length() || line.find_first_not_of("\t\v\n\r\f") == std::string::npos || line.find('#') != std::string::npos)
@@ -292,10 +295,8 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 		//=== TEST ===//
 			// Now 'serverBlock' contains the entire block, process it here
 			// Pass tempServer to obtain infos that has, then make the new one to put to _servers
-			Server newServer = processServer(serverBlock, tempServer);
-//			It's not implemented yet
+			Server newServer = processServer(tempServer);
 			this->_servers[tempServer.name] = newServer;
-			// this->_servers.insert(std::pair<std::string, Parser::Server>(tempServer.name, newServer));
 			// --- Initialization for the next block --- //
 			inServerBlock = false;
 			serverBlock = "";
@@ -314,7 +315,7 @@ void	Parser::parseByLine(std::string const & line, int & listeningPort)
 		if (line.find('}') != std::string::npos)
 		{
 			std::replace(locationBlock.begin(), locationBlock.end(), '\r', '\n');
-			Location tempLocation= processLocation(locationBlock);
+			Location tempLocation = processLocation(locationBlock);
 			tempServer.locations.push_back(tempLocation);
 			// --- Initialization for the next block --- //
 			inLocationBlock = false;
@@ -328,16 +329,16 @@ bool	Parser::parse( void )
 	std::ifstream	configFile(this->_conf_file.c_str());
 	if (!configFile.is_open())
 	{
-		std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
-		return false;
+		throw std::runtime_error("Failed to open config file: " + _conf_file);
+		// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
+		// return false;
 	}
 	std::string	line;
-	int	listningPort = -1;
 	while (std::getline(configFile, line))
 	{
 		//parse line
 		// std::cout << "\n>>> Input line: " GREEN <<line << RESET "\n";
-		parseByLine(line, listningPort);
+		parseByLine(line);
 	}
 	return true;
 }
@@ -358,38 +359,42 @@ std::string	const & Parser::getConfFile( void ) const
 
 std::ostream &operator<<(std::ostream &os, const Parser &obj)
 {
-	os << "_conf_file: " << obj.getConfFile() << "\n_servers: \n";
+	os << std::setw(12) << "_conf_file: " << obj.getConfFile() << YELLOW "\n" << std::setw(12) << "_servers: " << "\n";
 
 	// Iterate through the servers
 	std::map<std::string, Parser::Server>::const_iterator server_iter;
 	for (server_iter = obj.getServers().begin(); server_iter != obj.getServers().end(); ++server_iter)
 	{
-		// const std::string &server_name = server_iter->first;
 		const Parser::Server &server = server_iter->second;
 
-		os << YELLOW "Server name: " << server.name << "\n";
-		os << "host: " << server.host << "\n";
-		os << "port: " << server.port << "\n";
-		os << "root: " << server.root << RESET "\n";
-		os << MAGENTA "locations: \n";
+		os << "   " YELLOW << std::setfill('-') << std::setw(45) << "\n";
+		os << std::setfill(' ') << std::setw(15) << "Server name: " << server.name << "\n";
+		os << std::setw(15) << "host: " << server.host << "\n";
+		os << std::setw(15) << "port: " << server.port << "\n";
+		os << std::setw(15) << "root: " << server.root << "\n";
+		os << std::setw(15) << "locations: " << "\n   ";
+		os << std::setfill('-') << std::setw(45) << "\n";
 
 		// Iterate through the locations of the current server
 		std::vector<Parser::Location>::const_iterator location_iter;
 		for (location_iter = server.locations.begin(); location_iter != server.locations.end(); ++location_iter)
 		{
 			const Parser::Location &location = *location_iter;
-			os << MAGENTA "name: " << location.name << RESET "\n";
-			os << "root: " << location.root << "\n";
-			os << "index: " << location.index << "\n";
-			os << "cgi_path: " << location.cgi_path << "\n";
-			os << "upload_path: " << location.upload_path << "\n";
-			os << "redirect: " << location.redirect << "\n";
-			os << "autoindex: " << location.autoindex << "\n";
-			os << "max_body_size: " << location.max_body_size << "\n";
+			os << std::setfill(' ') << GREEN << std::setw(18) << "name: " << location.name << "\n";
+			os << std::setw(18) << "methods: ";
+			for (std::vector<std::string>::const_iterator it = location.methods.begin(); it != location.methods.end(); ++it)
+				os << *it << " ";
+			os << "\n";
+			os << std::setw(18) << "root: " << location.root << "\n";
+			os << std::setw(18) << "index: " << location.index << "\n";
+			os << std::setw(18) << "cgi_path: " << location.cgi_path << "\n";
+			os << std::setw(18) << "upload_path: " << location.upload_path << "\n";
+			os << std::setw(18) << "redirect: " << location.redirect << "\n";
+			os << std::setw(18) << "autoindex: " << location.autoindex << "\n";
+			os << std::setw(18) << "max_body_size: " << location.max_body_size << "\n   ";
+			os << std::setfill('*') << std::setw(50) << RESET "\n";
 		}
 	}
 
 	return os;
 }
-
-

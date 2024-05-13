@@ -67,10 +67,10 @@ class Parser
 			//MAYBE I will put std::string, like port number + server_name to identify.
 			std::map<std::string, Server> _servers;
 			void	serverSetting( std::istringstream & iss, Server & server );
-			void	parseByLine( std::string const & line, int & listeningPort );
+			void	parseByLine( std::string const & line );
 			// WIP
 			Location	processLocation( std::string const & block );
-			Server		processServer( std::string const & block, Server tempServer );
+			Server		processServer( Server tempServer );
 			// Server		processServer( std::string const & block );
 			void	obtainServerInfo(Server * tempServer, std::string const & line);
 

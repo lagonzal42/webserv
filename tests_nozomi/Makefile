@@ -35,6 +35,8 @@ CYAN 		:= \033[1;36m
 
 define	ART
 $(YELLOW)
+\___________________ ______________
+                   V
         /^-^\         /^-----^\\
        / o o \        V  o o  V
       /   ▼   \        |  ▽  | 
@@ -51,7 +53,12 @@ all: $(NAME)
 $(NAME): $(OBJS) 
 	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME)
 	$(info CREATED $(NAME))
+	@echo "$(YELLOW) __________________________________\n/$(CLR_RMV)"
+	@grep "TODO:" log.md
 	@echo "$$ART"
+	@echo "$(BLUE)"
+	@grep "NEXT:" log.md
+	@echo "$(CLR_RMV)"
 
 $(LIBS_TARGET):
 	$(MAKE) -C $(@D)

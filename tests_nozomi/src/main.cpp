@@ -40,32 +40,99 @@ void handle_connection(int client_socket)
 	if (valread > 0)
 	{
 		std::cout << "Received: " << buffer << std::endl;
+//TEST PRINT//
+		std::cout << "Until hereeee" << std::endl;
+//TEST PRINT//
 
-		std::ifstream file("docs/index.html", std::ios::in | std::ios::binary);
-		if (!file.is_open())
+		// Parse the HTTP request to get the requested URL
+
+		// Serve appropriate file based on the requested URL
+
+//*************this is to know how it works HTTP request*************//
+        std::string request = buffer;
+		if (request.find("8080") != std::string::npos) {
+			std::ifstream file("docs/index.html", std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				std::cerr << "Failed to open index.html" << std::endl;
+				return;
+			}
+
+			std::string html_content;
+			char ch;
+			while (file.get(ch))
+			{
+				html_content += ch;
+			}
+			file.close();
+
+			char content_length[20]; // Assuming content length won't exceed 20 characters
+			sprintf(content_length, "Content-Length: %lu", html_content.size());
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n";
+			response += content_length;
+			response += "\r\n\r\n" + html_content;
+			std::cout << "response: " << response << std::endl;
+			send(client_socket, response.c_str(), response.size(), 0);
+		}    
+		else if (request.find("8081") != std::string::npos) {
+			std::ifstream file("docs/indexjoy.html", std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				std::cerr << "Failed to open index.html" << std::endl;
+				return;
+			}
+
+			std::string html_content;
+			char ch;
+			while (file.get(ch))
+			{
+				html_content += ch;
+			}
+			file.close();
+
+			char content_length[20]; // Assuming content length won't exceed 20 characters
+			sprintf(content_length, "Content-Length: %lu", html_content.size());
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n";
+			response += content_length;
+			response += "\r\n\r\n" + html_content;
+			std::cout << "response: " << response << std::endl;
+			send(client_socket, response.c_str(), response.size(), 0);
+		}    
+//*************this is to know how it works HTTP request*************//
+		else
 		{
-			std::cerr << "Failed to open index.html" << std::endl;
-			return;
-		}
+		// Example:
+		std::string requested_url = "/"; // Placeholder for requested URL
+		if (requested_url == "/") {
+			std::ifstream file("docs/indexbird.html", std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				std::cerr << "Failed to open index.html" << std::endl;
+				return;
+			}
 
-		std::string html_content;
-		char ch;
-		while (file.get(ch))
-		{
-			html_content += ch;
-		}
-		file.close();
+			std::string html_content;
+			char ch;
+			while (file.get(ch))
+			{
+				html_content += ch;
+			}
+			file.close();
 
-		char content_length[20]; // Assuming content length won't exceed 20 characters
-		sprintf(content_length, "Content-Length: %lu", html_content.size());
-		std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n";
-		response += content_length;
-		response += "\r\n\r\n" + html_content;
-		std::cout << "response: " << response << std::endl;
-		send(client_socket, response.c_str(), response.size(), 0);
+			char content_length[20]; // Assuming content length won't exceed 20 characters
+			sprintf(content_length, "Content-Length: %lu", html_content.size());
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n";
+			response += content_length;
+			response += "\r\n\r\n" + html_content;
+			std::cout << "response: " << response << std::endl;
+			send(client_socket, response.c_str(), response.size(), 0);
+		}
+		}
 	}
 	close(client_socket);
 }
+
+
 
 std::vector<int>	setSockets(Parser const & parser)
 {
@@ -153,16 +220,25 @@ void	mainLoop(std::vector<struct pollfd> pollfds, std::vector<int> server_socket
 int	main(int argc, char *argv[])
 {
 //************** config parser **************//
-	Parser parser;//constructor with default.conf
-	if (argc > 1)
-		parser = Parser(argv[1]);//If there is an argument, make a copy
+	std::string	config_path;
+	if (argc == 2)
+		config_path = argv[1];
+	else if (argc == 1)
+		config_path = "configurations/default.conf";
+	else
+	{
+		std::cerr << "Error: too many arguments." << std::endl;
+		return 1;
+	}
+	Parser parser(config_path);//constructor with config_path
+
 	try
 	{
 		parser.parse();
 	}
 	catch (const std::exception & e)
 	{
-		std::cerr << "Exception caught: " << e.what() << std::endl;
+		std::cerr << "Parser error: " << e.what() << std::endl;
 		return 1;
 	}
 	std::cout << "\n" << std::setw(40) << "======>>> print test <<<======" << std::endl;

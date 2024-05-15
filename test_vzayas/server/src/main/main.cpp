@@ -1,14 +1,4 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <iostream>
-#include <vector>
-#include <algorithm>
-
-// this libraries are for Codespaces
-#include <cstring>
-#include <cstdio>
+#include "../../inc/webserver.h"
 
 // Creating two server sockets, serverSocket1 for port 8080 and serverSocket2 for port 8081. 
 // Binding each socket to its respective port and then add both sockets to the set of file descriptors that select monitors. 

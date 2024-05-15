@@ -16,8 +16,99 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <sstream>
+#include <cstdlib>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define SOCK_N 4
+#ifndef NOT_FOUND
+# define NOT_FOUND 404
+#endif
+
+extern char ** environ;
+
+void	doCgi(std::string& fileName, int client_socket)
+{
+	int pipes[2];
+
+
+	if (pipe(pipes) != 0)
+	{
+		std::cout << "Failed to create pipes" << std::endl;
+		return ;
+	}
+
+	int id = fork();
+
+	if (id == 0)
+	{
+		dup2(pipes[1], STDOUT_FILENO);
+		close(pipes[1]);
+		close(pipes[0]);
+		const char *filepath = {fileName.c_str()};
+		char *mutableFilepath = const_cast<char*>(filepath);
+
+		if (execve(filepath, &mutableFilepath, environ) == -1)
+		{
+			std::cout << "execve failed" << std::endl;
+			std::string content;
+			std::cout << "Response: " << content;
+
+			std::stringstream ss;
+    		ss << content.size();
+
+			std::string response = "HTTP/1.1 404 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+			send(client_socket, response.c_str(), response.size(), 0);
+			close(client_socket);
+			exit(0);
+		}
+	}
+	else
+	{
+		close(pipes[1]);
+		
+		waitpid(id, NULL, 0);
+		char buffer[BUFFER_SIZE];
+		int readed = read(pipes[0], buffer, BUFFER_SIZE);
+
+		close(pipes[0]);
+		std::string content(buffer);
+		if (readed > 0)
+		{
+			std::cout << "Response: " << content;
+
+			std::stringstream ss;
+    		ss << content.size();
+
+			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+			send(client_socket, response.c_str(), response.size(), 0);
+		}
+	}
+}
+
+void	doStandard(std::string& fileName, int client_socket)
+{
+	std::ifstream file(fileName, std::ios::in | std::ios::binary);
+	if (!file.is_open())
+	{
+		std::cerr << "Failed to open index.html" << std::endl;
+		return;
+	}
+
+	std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file.close();
+
+	//to_string is not allowed to use in std++98
+	//std::itoa(html_content.size()).c_str()
+
+	std::stringstream ss;
+    ss << html_content.size();
+
+	std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + html_content;
+	std::cout << "response: " << response << std::endl;
+	send(client_socket, response.c_str(), response.size(), 0);
+}
 
 
 void handle_connection(int client_socket) {
@@ -26,20 +117,44 @@ void handle_connection(int client_socket) {
 	if (valread > 0) {
 		std::cout << "Received: " << buffer << std::endl;
 
-		std::ifstream file("../tests_nozomi/docs/index.html", std::ios::in | std::ios::binary);
-		if (!file.is_open()) {
-			std::cerr << "Failed to open index.html" << std::endl;
-			return;
+		std::string req(buffer);
+		std::string method;
+		std::istringstream reqStream(req);
+
+		std::getline(reqStream, method, ' ');
+		
+		std::cout << "Method: " << method << std::endl;
+
+		std::string fileName;
+		std::getline(reqStream, fileName, ' ');
+		fileName = "." + fileName;
+
+		std::cout << "Requested file: " << fileName << std::endl;
+
+		if (fileName.find("/cgi-bin") != std::string::npos)
+		{
+			std::cout << "The file is in the cgi-bin directory" << std::endl;
+			doCgi(fileName, client_socket);
 		}
+		else
+		{
+			std::cout << "The file is not in the cgi-bin directory" << std::endl;
+			doStandard(fileName, client_socket);
+		}
+		// std::ifstream file("../tests_nozomi/docs/index.html", std::ios::in | std::ios::binary);
+		// if (!file.is_open()) {
+		// 	std::cerr << "Failed to open index.html" << std::endl;
+		// 	return;
+		// }
 
-		std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		file.close();
+		// std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		// file.close();
 
-		//to_string is not allowed to use in std++98
-		//std::itoa(html_content.size()).c_str()
-		std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(html_content.size()) + "\r\n\r\n" + html_content;
-		std::cout << "response: " << response << std::endl;
-		send(client_socket, response.c_str(), response.size(), 0);
+		// //to_string is not allowed to use in std++98
+		// //std::itoa(html_content.size()).c_str()
+		// std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(html_content.size()) + "\r\n\r\n" + html_content;
+		// std::cout << "response: " << response << std::endl;
+		// send(client_socket, response.c_str(), response.size(), 0);
 	}
 	close(client_socket);
 }

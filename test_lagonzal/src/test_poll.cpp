@@ -46,29 +46,30 @@ void	doCgi(std::string& fileName, int client_socket)
 		dup2(pipes[1], STDOUT_FILENO);
 		close(pipes[1]);
 		close(pipes[0]);
-		const char *filepath = {fileName.c_str()};
-		char *mutableFilepath = const_cast<char*>(filepath);
+		fileName = "." + fileName;
+		char *filepath[] = {const_cast<char *>(fileName.c_str()), NULL};
+		//char *mutableFilepath = const_cast<char*>(filepath);
 
-		if (execve(filepath, &mutableFilepath, environ) == -1)
+		if (execve(filepath[0], filepath, environ) == -1)
 		{
 			std::cout << "execve failed" << std::endl;
-			std::string content;
-			std::cout << "Response: " << content;
-
-			std::stringstream ss;
-    		ss << content.size();
-
-			std::string response = "HTTP/1.1 404 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-			send(client_socket, response.c_str(), response.size(), 0);
 			close(client_socket);
-			exit(0);
 		}
 	}
 	else
 	{
+		int status;
 		close(pipes[1]);
 		
-		waitpid(id, NULL, 0);
+		waitpid(id, &status, 0);
+		if (WIFEXITED(status)) //proccess terminated normally by no signal
+		{
+			if (WEXITSTATUS(status) != 0)
+			{
+				std::string response = "HTTP/1.1 404 KO\r\nContent-Type: text/html\r\nContent-Length: 0" + "\r\n\r\n";
+				send(client_socket, response.c_str(), response.size(), 0);
+			}
+		}
 		char buffer[BUFFER_SIZE];
 		int readed = read(pipes[0], buffer, BUFFER_SIZE);
 
@@ -84,11 +85,14 @@ void	doCgi(std::string& fileName, int client_socket)
 			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 			send(client_socket, response.c_str(), response.size(), 0);
 		}
+		close(client_socket);
 	}
 }
 
 void	doStandard(std::string& fileName, int client_socket)
 {
+	
+	std::cout << "Doing standard" << std::endl;
 	std::ifstream file(fileName, std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
@@ -99,19 +103,23 @@ void	doStandard(std::string& fileName, int client_socket)
 	std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 
-	//to_string is not allowed to use in std++98
-	//std::itoa(html_content.size()).c_str()
-
+	//substitution to the to_string method
 	std::stringstream ss;
     ss << html_content.size();
 
 	std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + html_content;
 	std::cout << "response: " << response << std::endl;
 	send(client_socket, response.c_str(), response.size(), 0);
+	close(client_socket);
 }
 
-
-void handle_connection(int client_socket) {
+/**
+ * @brief Checks the request minimally and if the requested file is in the cgi-bin directory executes it and send the result, otherwise it does the standard
+ * 
+ * @param client_socket 
+ */
+void handle_connection(int client_socket) 
+{
 	char buffer[BUFFER_SIZE] = {0};
 	int valread = read(client_socket, buffer, BUFFER_SIZE);
 	if (valread > 0) {
@@ -127,11 +135,10 @@ void handle_connection(int client_socket) {
 
 		std::string fileName;
 		std::getline(reqStream, fileName, ' ');
-		fileName = "." + fileName;
 
 		std::cout << "Requested file: " << fileName << std::endl;
 
-		if (fileName.find("/cgi-bin") != std::string::npos)
+		if (fileName.find("cgi-bin") != std::string::npos)
 		{
 			std::cout << "The file is in the cgi-bin directory" << std::endl;
 			doCgi(fileName, client_socket);
@@ -141,26 +148,23 @@ void handle_connection(int client_socket) {
 			std::cout << "The file is not in the cgi-bin directory" << std::endl;
 			doStandard(fileName, client_socket);
 		}
-		// std::ifstream file("../tests_nozomi/docs/index.html", std::ios::in | std::ios::binary);
-		// if (!file.is_open()) {
-		// 	std::cerr << "Failed to open index.html" << std::endl;
-		// 	return;
-		// }
-
-		// std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		// file.close();
-
-		// //to_string is not allowed to use in std++98
-		// //std::itoa(html_content.size()).c_str()
-		// std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(html_content.size()) + "\r\n\r\n" + html_content;
-		// std::cout << "response: " << response << std::endl;
-		// send(client_socket, response.c_str(), response.size(), 0);
 	}
 	close(client_socket);
 }
 
+/**
+ * @brief This function will be divided in the future.
+ * 
+ * 
+ * @return int 
+ */
+
 int main(void)
 {
+	/*
+		This first part initializes the sockets especified by SOCK_N, binds them and puts them to listen.
+		The config parse should go before this, and the signal handling too.
+	*/
 	std::vector<int> serverSockets;
 	std::vector<pollfd> fds;
 	std::vector<sockaddr_in> serverAddrs(SOCK_N);
@@ -175,42 +179,45 @@ int main(void)
 			return (1);
 		}
 
-		//struct sockaddr_in serverAddr;
 		memset(&serverAddrs[i], 0, sizeof(serverAddrs[i]));
 		serverAddrs[i].sin_family = AF_INET;
-		serverAddrs[i].sin_port = htons(8080 + i);
-		serverAddrs[i].sin_addr.s_addr = INADDR_ANY;
+		serverAddrs[i].sin_port = htons(8081 + i);
+		serverAddrs[i].sin_addr.s_addr = INADDR_ANY; //binds to any address available(?)
 
 		if (bind(serverSocket, (struct sockaddr *) &serverAddrs[i], sizeof(serverAddrs[i])) < 0)
 		{
-			std::cerr << "Bind failed in port" << 8080 + i;
+			std::cerr << "Bind failed in port" << 8081 + i;
 			perror("");
 			return (1);
 		}
 		if (listen(serverSocket, 5) < 0)
 		{
-			std::cerr <<  "Failed listen on port " << 8080 + i;
+			std::cerr <<  "Failed listen on port " << 8081 + i;
 			perror("");
 			return (1);
 		}
 
    		std::cout << "Listening on port " << 8081 + i << std::endl;
 
+		//is a pollfd structure vector. 
 		fds.push_back({serverSocket, POLLIN, 0});
+		//is a vector for the listening sockets.
 		serverSockets.push_back(serverSocket);
 	}
 
-
+	//This is the server loop
 	while (true)
 	{
+		//executes poll looking for events
 		poll(&fds[0], fds.size(), -1);
 
+		//iterates through the pollfds
 		for (size_t i = 0; i < fds.size(); i++)
 		{
-			if (fds[i].revents & POLLIN) //POLLIN flag means that the socket is ready. revets is the event that is returned by poll
+			if (fds[i].revents & POLLIN) //POLLIN flag means that the socket is ready. revents is the event that is returned by poll inside the pollfd structure
 			{
 				std::vector<int>::iterator it = std::find(serverSockets.begin(), serverSockets.end(), fds[i].fd);
-				if (it != serverSockets.end()) //Creates a client socket
+				if (it != serverSockets.end()) //Creates a client socket if the socket with the in event was one of the servers ones.
 				{
 					struct sockaddr_in clientAddr;
 					socklen_t clientAddrLen = sizeof(clientAddr);
@@ -225,14 +232,6 @@ int main(void)
 					i--;
 				}
 			}
-		}
-		std::cout << "FDS in fds vector are: " << std::endl;
-		for (size_t i = 0; i < fds.size(); i++)
-		{
-			std::cout << fds[i].fd << std::endl;
-		}
-		std::cout << std::endl;
-	}
-
-
+		} // socket event check loop end
+	} //server loop end
 }

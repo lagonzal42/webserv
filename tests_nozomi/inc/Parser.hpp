@@ -41,22 +41,24 @@ class Parser
 			struct Server
 			{
 				// int			index;
-				std::string	name; //server_name
+				std::string	name; //server_name, at this moment it's not necessarry but I will leave it
 				std::string root; //root
 				std::vector<Location> locations; //location /
 				std::string	host; 
 				std::string	port; //listen
-				// Default constructor
+				// Default constructor to initialize
 				Server() : name(""), root(""), host(""), port("") {}
 			};
 //--- structs ---//
 			Parser( void );
-			Parser( std::string const & conf );
+			// Parser( std::string const & conf );
 			~Parser( void );
 			Parser( Parser const & src );
 			Parser & operator=( Parser const & src );
-			bool	parse( void );
+			bool	parse( std::string const & conf );
+			// bool	parse( void );
 			std::map<std::string, Server>	const & getServers( void ) const;
+			std::map<std::string, Server>	const & getDefServer( void ) const;
 			std::string	const & getConfFile( void ) const;
 
 	private:
@@ -66,6 +68,7 @@ class Parser
 			//make a temp server and add to the map when we know port and index
 			//MAYBE I will put std::string, like port number + server_name to identify.
 			std::map<std::string, Server> _servers;
+			std::map<std::string, Server> _serversDefault;
 			void	serverSetting( std::istringstream & iss, Server & server );
 			void	parseByLine( std::string const & line );
 			// WIP

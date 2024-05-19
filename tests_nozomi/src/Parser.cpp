@@ -5,12 +5,20 @@
 #include <iomanip>
 #include <stdexcept>
 
+/**
+ * @author nozomi
+ * @brief change the flow, construct by default_test.conf, and change if there are difference between default setting and ***.conf
+*/
+
+
+
 // --- Functions for Orthodox canonical class form --- //
 
-Parser::Parser( void ): _conf_file("configurations/default.conf")
+Parser::Parser( void ): _conf_file("configurations/webserv.conf")
 {
 	std::cout << _conf_file << ": Called default constructor!" << std::endl;
-
+	Parser::parse(_conf_file);//error check
+	std::cout << _conf_file << ": Called initialization parser!" << std::endl;
 }
 Parser::~Parser( void )
 {
@@ -37,10 +45,10 @@ Parser & Parser::operator=( Parser const & src )
 
 // --- Member functions --- //
 
-Parser::Parser( std::string const & conf ): _conf_file(conf)
-{
-	std::cout << _conf_file << ": Called constructor!" << std::endl;
-}
+// Parser::Parser( std::string const & conf ): _conf_file(conf)
+// {
+// 	std::cout << _conf_file << ": Called constructor!" << std::endl;
+// }
 
 size_t	Parser::obtainSizeFromStr(std::string const & num)
 {
@@ -62,6 +70,33 @@ Parser::Location	Parser::processLocation( std::string const & block )
 	// std::cout << GREEN "I'm in processLocation!" << std::endl;
 	// std::cout << block << RESET << std::endl;
 //=== TEST ===//
+
+	//check if the location is defined in the default server
+	if (!this->_serversDefault.empty())
+	{
+		Parser::Server def = this->getDefServer().begin()->second;
+		std::vector<Parser::Location> & defLocations = def.locations;
+		for (std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it)
+		{
+			if (block.find(it->name) != std::string::npos)
+			{
+				std::cout << GREEN "I found it! " << it->name << std::endl;
+				std::cout << RESET << block << std::endl;
+				ret = *it;
+				std::cout << "ret.name: " << ret.name << std::endl;
+				std::cout << "ret.root: " << ret.root << std::endl;
+				std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
+				std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
+				std::cout << "ret.index: " << ret.index << std::endl;
+				std::cout << "ret.methods: ";
+				for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
+					std::cout << *it << " ";
+				std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
+				std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
+				break ;
+			}
+		}
+	}
 
 	std::istringstream iss(block);
 	std::string line;
@@ -93,35 +128,35 @@ Parser::Location	Parser::processLocation( std::string const & block )
 		}
 		switch (i)
 		{
-		case 0://location
-				ret.name = extractWord(line, info[i]);//location / {   ==> I have to remove {
-				break ;
-		case 1://method	
-				ret.methods = obtainMethod(line);
-				break ;
-		case 2://root
-				ret.root = extractWord(line, info[i]);
-				break ;
-		case 3://autoindex ***I have to return bool
-				if (line.find("on") != std::string::npos)
-					ret.autoindex = true;
-				break ;
-		case 4://upload_path
-				ret.upload_path = extractWord(line, info[i]);
-				break ;
-		case 5://cgi_path
-				ret.cgi_path = extractWord(line, info[i]);
-				break ;
-		case 6://index
-				ret.index = extractWord(line, info[i]);
-				break ;
-		case 7://max_body_size
-				num = extractNumbers(line);
-				ret.max_body_size = obtainSizeFromStr(num);
-				break ;
-		default: throw std::runtime_error("Unknown block type encountered: " + line);
-		// std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
-			// break ;
+			case 0://location
+					ret.name = extractWord(line, info[i]);//location / {   ==> I have to remove {
+					break ;
+			case 1://method	
+					ret.methods = obtainMethod(line);
+					break ;
+			case 2://root
+					ret.root = extractWord(line, info[i]);
+					break ;
+			case 3://autoindex ***I have to return bool
+					if (line.find("on") != std::string::npos)
+						ret.autoindex = true;
+					break ;
+			case 4://upload_path
+					ret.upload_path = extractWord(line, info[i]);
+					break ;
+			case 5://cgi_path
+					ret.cgi_path = extractWord(line, info[i]);
+					break ;
+			case 6://index
+					ret.index = extractWord(line, info[i]);
+					break ;
+			case 7://max_body_size
+					num = extractNumbers(line);
+					ret.max_body_size = obtainSizeFromStr(num);
+					break ;
+			default: throw std::runtime_error("Unknown block type encountered: " + line);
+			// std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
+				// break ;
 		}
 	}
 //=== TEST ===//
@@ -139,6 +174,7 @@ Parser::Location	Parser::processLocation( std::string const & block )
 
 	return ret;
 }
+
 Parser::Server		Parser::processServer( Parser::Server tempServer )
 {
 //=== TEST ===//
@@ -146,14 +182,36 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 	// std::cout << block << RESET << std::endl;
 //=== TEST ===//
 	Server ret;
-	if (tempServer.port != "0") // It should not be empty, maybe it is not needed
+	if (tempServer.port.empty() && !this->_serversDefault.empty())
 	{
-		ret.host = tempServer.host;
-		ret.locations = tempServer.locations;
-		ret.name = tempServer.name;
-		ret.port = tempServer.port;
-		ret.root = tempServer.root;
+		tempServer.port = this->getDefServer().begin()->second.port;
 	}
+	ret.host = tempServer.host;
+	ret.locations = tempServer.locations;
+	//to check if the locations incudes things that should not be empty
+	if (!this->_serversDefault.empty())
+	{
+		Parser::Server def = this->getDefServer().begin()->second;
+		std::vector<Parser::Location> & defLocations = def.locations;
+		std::vector<Parser::Location>::iterator retIt;
+		std::vector<Parser::Location>::iterator defIt;
+
+		for (defIt = defLocations.begin(); defIt != defLocations.end(); ++defIt)
+		{
+			for (retIt = ret.locations.begin(); retIt != ret.locations.end(); ++retIt)
+			{
+				if (defIt->name == retIt->name)
+					break ;
+			}
+			if (retIt != ret.locations.end())
+				continue ;
+			ret.locations.push_back(*defIt);
+			std::cout << BLUE "I added things that wasn't there! "  RESET << std::endl;
+		}
+	}
+	ret.name = tempServer.name;
+	ret.port = tempServer.port;
+	ret.root = tempServer.root;
 	return ret;
 }
 
@@ -296,7 +354,11 @@ void	Parser::parseByLine(std::string const & line)
 			// Now 'serverBlock' contains the entire block, process it here
 			// Pass tempServer to obtain infos that has, then make the new one to put to _servers
 			Server newServer = processServer(tempServer);
-			this->_servers[tempServer.name] = newServer;
+			// If it's initialized the default server.
+			if (this->_serversDefault.empty())
+				this->_serversDefault[tempServer.name] = newServer;
+			else
+				this->_servers[tempServer.name] = newServer;
 			// --- Initialization for the next block --- //
 			inServerBlock = false;
 			serverBlock = "";
@@ -324,12 +386,12 @@ void	Parser::parseByLine(std::string const & line)
 	}
 }
 
-bool	Parser::parse( void )
+bool	Parser::parse( std::string const & conf )
 {
-	std::ifstream	configFile(this->_conf_file.c_str());
+	std::ifstream	configFile(conf.c_str());
 	if (!configFile.is_open())
 	{
-		throw std::runtime_error("Failed to open config file: " + _conf_file);
+		throw std::runtime_error("Failed to open config file: " + conf);
 		// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
 		// return false;
 	}
@@ -348,6 +410,12 @@ std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 {
 	return this->_servers;
 }
+
+std::map<std::string, Parser::Server>	const & Parser::getDefServer( void ) const
+{
+	return this->_serversDefault;
+}
+
 std::string	const & Parser::getConfFile( void ) const
 {
 	return this->_conf_file;
@@ -395,6 +463,7 @@ std::ostream &operator<<(std::ostream &os, const Parser &obj)
 			os << std::setfill('*') << std::setw(50) << RESET "\n";
 		}
 	}
+	os << std::setfill(' ');
 
 	return os;
 }

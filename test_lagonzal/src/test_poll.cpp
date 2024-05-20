@@ -66,7 +66,7 @@ void	doCgi(std::string& fileName, int client_socket)
 		{
 			if (WEXITSTATUS(status) != 0)
 			{
-				std::string response = "HTTP/1.1 404 KO\r\nContent-Type: text/html\r\nContent-Length: 0" + "\r\n\r\n";
+				std::string response = "HTTP/1.1 404 KO\r\nContent-Type: text/html\r\nContent-Length: 0 \r\n\r\n";
 				send(client_socket, response.c_str(), response.size(), 0);
 			}
 		}
@@ -146,6 +146,8 @@ void handle_connection(int client_socket)
 		else
 		{
 			std::cout << "The file is not in the cgi-bin directory" << std::endl;
+			if (fileName.length() == 1)
+				fileName = "./index.html";
 			doStandard(fileName, client_socket);
 		}
 	}
@@ -209,7 +211,7 @@ int main(void)
 	while (true)
 	{
 		//executes poll looking for events
-		int events = poll(&fds[0], fds.size(), 0);
+		int events = poll(&fds[0], fds.size(), 5000);
 		
 		if (events != 0)
 		{

@@ -32,6 +32,41 @@ int	obtainIntFromStr(std::string const & num)
 	return ret;
 }
 
+std::map<std::string, std::string> parse_http_request(const std::string& request)
+{
+	std::map<std::string, std::string> ret;
+
+	// Split the request into lines
+	std::istringstream iss(request);
+	std::string line;
+	while (std::getline(iss, line))
+	{
+		// Check if the line is empty (end of ret)
+		if (line.empty())
+		{
+			break;
+		}
+
+		// Split each line into key-value pairs
+		if (line.find("GET") != std::string::npos || line.find("POST") != std::string::npos || line.find("DELETE") != std::string::npos)
+		{
+			ret["request_line"] = line;
+		}
+		size_t pos = line.find(':');
+		if (pos != std::string::npos)
+		{
+			std::string key = line.substr(0, pos);
+			std::string value = line.substr(pos + 1);
+			// Trim leading and trailing whitespace from value
+			value.erase(0, value.find_first_not_of(" \t"));
+			value.erase(value.find_last_not_of(" \t") + 1);
+			ret[key] = value;
+		}
+	}
+
+	return ret;
+}
+
 void handle_connection(int client_socket)
 {
 	char buffer[BUFFER_SIZE];
@@ -45,6 +80,19 @@ void handle_connection(int client_socket)
 //TEST PRINT//
 
 		// Parse the HTTP request to get the requested URL
+		// At this moment put here, but it should be in another class
+		std::map<std::string, std::string> headers = parse_http_request(buffer);
+
+//TEST PRINT//
+		std::cout << "-----**********------" RESET << std::endl;
+		std::cout << GREEN "Request print!" RESET << std::endl;
+		for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+			std::cout << GREEN << it->first << ": " RESET << it->second << std::endl;
+		std::cout << "-----**********------" RESET << std::endl;
+
+//TEST PRINT//
+
+
 
 		// Serve appropriate file based on the requested URL
 
@@ -75,7 +123,7 @@ void handle_connection(int client_socket)
 			send(client_socket, response.c_str(), response.size(), 0);
 		}    
 		else if (request.find("8081") != std::string::npos) {
-			std::ifstream file("docs/indexjoy.html", std::ios::in | std::ios::binary);
+			std::ifstream file("docs/indexcolor.html", std::ios::in | std::ios::binary);
 			if (!file.is_open())
 			{
 				std::cerr << "Failed to open index.html" << std::endl;
@@ -97,7 +145,7 @@ void handle_connection(int client_socket)
 			response += "\r\n\r\n" + html_content;
 			std::cout << "response: " << response << std::endl;
 			send(client_socket, response.c_str(), response.size(), 0);
-		}    
+		}
 //*************this is to know how it works HTTP request*************//
 		else
 		{
@@ -230,11 +278,12 @@ int	main(int argc, char *argv[])
 		std::cerr << "Error: too many arguments." << std::endl;
 		return 1;
 	}
-	Parser parser(config_path);//constructor with config_path
+	Parser parser;//construct without argv, but with webserv.conf
+	// Parser parser(config_path);//constructor with config_path
 
 	try
 	{
-		parser.parse();
+		parser.parse(config_path);
 	}
 	catch (const std::exception & e)
 	{

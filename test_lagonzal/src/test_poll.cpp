@@ -209,29 +209,34 @@ int main(void)
 	while (true)
 	{
 		//executes poll looking for events
-		poll(&fds[0], fds.size(), -1);
-
-		//iterates through the pollfds
-		for (size_t i = 0; i < fds.size(); i++)
+		int events = poll(&fds[0], fds.size(), 0);
+		
+		if (events != 0)
 		{
-			if (fds[i].revents & POLLIN) //POLLIN flag means that the socket is ready. revents is the event that is returned by poll inside the pollfd structure
+			//iterates through the pollfds
+			for (size_t i = 0; i < fds.size(); i++)
 			{
-				std::vector<int>::iterator it = std::find(serverSockets.begin(), serverSockets.end(), fds[i].fd);
-				if (it != serverSockets.end()) //Creates a client socket if the socket with the in event was one of the servers ones.
+				if (fds[i].revents & POLLIN) //POLLIN flag means that the socket is ready. revents is the event that is returned by poll inside the pollfd structure
 				{
-					struct sockaddr_in clientAddr;
-					socklen_t clientAddrLen = sizeof(clientAddr);
-					int clientSocket = accept(*it , (struct sockaddr *)&clientAddr, &clientAddrLen);
-					fds.push_back({clientSocket, POLLIN, 0});
+					std::vector<int>::iterator it = std::find(serverSockets.begin(), serverSockets.end(), fds[i].fd);
+					if (it != serverSockets.end()) //Creates a client socket if the socket with the in event was one of the servers ones.
+					{
+						struct sockaddr_in clientAddr;
+						socklen_t clientAddrLen = sizeof(clientAddr);
+						int clientSocket = accept(*it , (struct sockaddr *)&clientAddr, &clientAddrLen);
+						fds.push_back({clientSocket, POLLIN, 0});
+					}
+					else //Uses the client socket and closes it
+					{
+						handle_connection(fds[i].fd);
+						close(fds[i].fd);
+						fds.erase(fds.begin() + i);
+						i--;
+					}
 				}
-				else //Uses the client socket and closes it
-				{
-					handle_connection(fds[i].fd);
-					close(fds[i].fd);
-					fds.erase(fds.begin() + i);
-					i--;
-				}
-			}
-		} // socket event check loop end
+			} // socket event check loop end
+		}
+		else
+			std::cout << "No events happened" << std::endl;
 	} //server loop end
 }

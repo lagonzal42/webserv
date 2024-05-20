@@ -39,5 +39,6 @@ class ResponseGenerator
 		~ResponseGenerator();
 		
         static const char	*generateResponse(int responseCode);
-		static const char	*generateResponse(int responseCode, int pipeFD);
+		static const char	*generateResponse(int pipeFD);
+		static const char	*generateResponse(std::string fileName);
 };

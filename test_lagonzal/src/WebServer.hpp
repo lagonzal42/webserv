@@ -51,9 +51,9 @@ class WebServer
 
 		void	acceptConnection(int servVecPos);
 
-		void	processRequest(int cliVecPos);
+		void	readRequest(int cliVecPos);
 
-		void	sendResponse(int socketFD /*, Respose*/);
+		void	sendResponse(int vectorPos /*, Respose*/);
 
 		void	cleanVectors(int vectorPos);
 

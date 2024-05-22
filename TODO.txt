@@ -11,3 +11,9 @@ Learn about how sockets and non-blocking fd
 
 Test nginx to check response headers
 
+
+vz: learn about POST, error http code
+
+Larrain: autoindex, petitions
+
+nozomi: Parser(get location)

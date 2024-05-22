@@ -17,3 +17,5 @@ vz: learn about POST, error http code
 Larrain: autoindex, petitions
 
 nozomi: Parser(get location)
+
+all: Learn about bonus part (about cookies, session management and Multiple CGI)

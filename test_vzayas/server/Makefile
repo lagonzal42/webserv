@@ -2,8 +2,8 @@
 NAME = webserv
 
 # FLAGS #
-CXX = clang++
-CXXFLAGS = -Wall -Werror -Wextra #-std=c++98 #--pedantic
+CXX = c++
+CXXFLAGS = -Wall -Werror -Wextra #-std=c++98
 
 # ASCII COLORS #
 RED=\033[0;31m
@@ -41,27 +41,27 @@ OBJDIR := obj/
 OBJS := $(addprefix $(OBJDIR), $(PLAIN_SRCS:.cpp=.o))
 
 # COMPILATION #
-#.SILENT:
+.SILENT:
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	@echo "$(MAG)༺ Creating folders...༻$(END)"
+	echo "$(MAG)༺ Creating folders...༻$(END)"
 	$(CXX) $(CXXFLAGS) $^ -o $(NAME)
-	@echo "$(BLUE)༺ Program compiled༻$(END)"
-	@echo "$$ART"
+	echo "$(BLUE)༺ Program compiled༻$(END)"
+	echo "$$ART"
 
 $(OBJDIR)%.o: $(SRCDIR)%.cpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-	@echo "$(GREEN)༺ Objects compiled༻$(END)"
+	echo "$(GREEN)༺ Objects compiled༻$(END)"
 
 clean:
 	$(RM) -rf $(OBJDIR)
-	@echo "$(RED)༺ Objs deleted༻$(END)"
+	echo "$(RED)༺ Objs deleted༻$(END)"
 
 fclean: clean
 	$(RM) $(NAME)
-	@echo "$(YELLOW)༺ Executable deleted༻$(END)"
+	echo "$(YELLOW)༺ Executable deleted༻$(END)"
 
 re: fclean all
 

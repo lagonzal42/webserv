@@ -78,6 +78,9 @@ int WebServer::readRequest(int vectorPos)
 }
 
 void WebServer::sendResponse() //still implementing
+{
+	
+}
 
 
 void	cleanVectors(int vectorPos)

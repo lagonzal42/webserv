@@ -119,9 +119,9 @@ Parser::Location	Parser::processLocation( std::string const & block )
 
 		if (!line.length() || line.find('}') != std::string::npos || line.find_first_not_of("}\t\v\n\r\f") == std::string::npos)
 			continue ;
-		std::string	info[8] = {"location", "method", "root", "autoindex", "upload_path", "cgi_path", "index", "max_body_size"};
+		std::string	info[9] = {"location", "method", "root", "autoindex", "upload_path", "redirect", "cgi_path", "index", "max_body_size"};
 		int	i = 0;
-		for (i = 0; i < 8; i++)
+		for (i = 0; i < 9; i++)
 		{
 			if (line.find(info[i]) != std::string::npos)
 				break ;
@@ -144,13 +144,16 @@ Parser::Location	Parser::processLocation( std::string const & block )
 			case 4://upload_path
 					ret.upload_path = extractWord(line, info[i]);
 					break ;
-			case 5://cgi_path
+			case 5://redirect
+					ret.redirect = extractWord(line, info[i]);
+					break ;
+			case 6://cgi_path
 					ret.cgi_path = extractWord(line, info[i]);
 					break ;
-			case 6://index
+			case 7://index
 					ret.index = extractWord(line, info[i]);
 					break ;
-			case 7://max_body_size
+			case 8://max_body_size
 					num = extractNumbers(line);
 					ret.max_body_size = obtainSizeFromStr(num);
 					break ;
@@ -443,10 +446,10 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 	const Parser::Server &curServer = server_iter->second;
 	std::vector<Parser::Location>::const_iterator location_iter;
 	// Find the location in the server using the path
+	// if it has the exactly same path, it's fine. but if it's not, I need to search the closest one
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
-		//if it has the exactly same path, it's fine. but if it's not, I need to search the closest one
 		if (location.root == path)
 		{
 			std::cout << YELLOW "I found " << path << "!!!!" RESET << std::endl;

@@ -297,8 +297,14 @@ int	main(int argc, char *argv[])
 //************** config parser **************//
 
 //************** check if it's working the getter **************//
-parser.getCurLocation("/var/www/html/aaa", "8080");
+Parser::Location location = parser.getCurLocation("/cgi-bin/", "8080");
 
+std::cout << CYAN << std::setw(40) << "======>>> print test <<<======" << std::endl;
+std::cout << "name: " << location.name << "\nroot: " << location.root << "\nmethod: ";
+for (std::vector<std::string>::const_iterator it = location.methods.begin(); it != location.methods.end(); ++it)
+	std::cout << *it << " ";
+std::cout << std::endl;
+std::cout << std::setw(40) << "======>>> print test <<<======" << "\n" RESET << std::endl;
 
 //************** check if it's working the getter **************//
 

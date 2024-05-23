@@ -1,4 +1,4 @@
-TODO:  
+TODO: 
 NEXT: 
 
 
@@ -11,6 +11,7 @@ DONE: Check if tempServer initialized after obtain a server
 DONE: Put exception
 DONE: Remove unused argument
 DONE: Test if it can run a server
+DONE: Make getter function to find the current/closest location
 
 
 

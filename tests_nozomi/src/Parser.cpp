@@ -276,11 +276,12 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 			tempServer->name = tempServer->port;
 			break ;
 	case 1:
+	//as I changed the map string to only port number, also it's changed
 			tempServer->host = extractWord(temp, "server_name");
-			if (tempServer->name != "")
-				tempServer->name = tempServer->host + ":" + tempServer->port;
-			else
-				tempServer->name = tempServer->host;
+			// if (tempServer->name != "")
+			// 	tempServer->name = tempServer->host + ":" + tempServer->port;
+			// else
+			// 	tempServer->name = tempServer->host;
 			break ;
 	case 2:
 			tempServer->root = extractWord(temp, "root");
@@ -420,6 +421,66 @@ std::string	const & Parser::getConfFile( void ) const
 {
 	return this->_conf_file;
 }
+
+/**
+ * @note return the current location
+*/
+Parser::Location const Parser::getCurLocation( std::string const & path, std::string const & port ) const
+{
+	//I think I will recieve path ---  "/upload/img"   port ---  "8080"
+	Parser::Location ret;
+
+	//try to find server by server port number
+	std::map<std::string, Parser::Server> servers = this->getServers();
+	std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
+	if (server_iter == servers.end())
+	{
+		// If no server found for the given port, return as a error
+		return ret;
+	}
+	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
+
+	const Parser::Server &curServer = server_iter->second;
+	std::vector<Parser::Location>::const_iterator location_iter;
+	// Find the location in the server using the path
+	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
+	{
+		const Parser::Location &location = *location_iter;
+		//if it has the exactly same path, it's fine. but if it's not, I need to search the closest one
+		if (location.root == path)
+		{
+			std::cout << YELLOW "I found " << path << "!!!!" RESET << std::endl;
+			return location;
+		}
+	}
+	//OK, now I have to look for the closest matching path
+	const Parser::Location* bestMatch = NULL;
+	size_t longestMatchLength = 0;
+
+	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
+	{
+		const Parser::Location &location = *location_iter;
+		// Check if location.root is a prefix of path
+		if (path.find(location.root) == 0)
+		{
+			size_t matchLength = location.root.length();
+			if (matchLength > longestMatchLength)
+			{
+				longestMatchLength = matchLength;
+				bestMatch = &location;
+			}
+		}
+	}
+	if (bestMatch)
+	{
+		std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
+		return *bestMatch;
+	}
+	return ret;
+
+}
+
+
 	// --- Getter functions --- //
 
 // --- Member functions --- //

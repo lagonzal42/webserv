@@ -29,9 +29,7 @@ class Parser
 				std::string	name;
 				std::string root; //root
 				std::string	index; //index
-				// std::string methods;
 				std::vector<std::string> methods; //method GET, POST OR DELETE
-				// int			methods;
 				std::string	cgi_path; //cgi_path
 				std::string	upload_path; //upload_path
 				std::string	redirect;
@@ -51,15 +49,17 @@ class Parser
 			};
 //--- structs ---//
 			Parser( void );
-			// Parser( std::string const & conf );
 			~Parser( void );
 			Parser( Parser const & src );
 			Parser & operator=( Parser const & src );
 			bool	parse( std::string const & conf );
-			// bool	parse( void );
 			std::map<std::string, Server>	const & getServers( void ) const;
 			std::map<std::string, Server>	const & getDefServer( void ) const;
 			std::string	const & getConfFile( void ) const;
+			//I will make two function, one to return methods vector, another to return as a boolean
+			// std::vector<std::string> const & getMethodPath( std::string const & path ) const;
+			Location const getCurLocation( std::string const & path, std::string const & port ) const;
+
 
 	private:
 			std::string	_conf_file;
@@ -67,6 +67,7 @@ class Parser
 			//As we don't know how many servers we will have, use a map to store them.
 			//make a temp server and add to the map when we know port and index
 			//MAYBE I will put std::string, like port number + server_name to identify.
+			//20240523: change ths string to port number only.
 			std::map<std::string, Server> _servers;
 			std::map<std::string, Server> _serversDefault;
 			void	serverSetting( std::istringstream & iss, Server & server );
@@ -81,6 +82,7 @@ class Parser
 			std::string	extractWord(std::string const & str, std::string const & key);
 			std::vector<std::string> obtainMethod(std::string const & line);
 			size_t	obtainSizeFromStr(std::string const & num);
+
 	protected:
 
 

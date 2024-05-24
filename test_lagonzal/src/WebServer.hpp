@@ -18,6 +18,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <algorithm>
+#include <iostream>
+
+#define GET 0
+#define POST 1
+#define DELETE 2
+#define INVALID_METHOD 3
+
 
 class WebServer
 {
@@ -32,7 +40,7 @@ class WebServer
 
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
-		void	startSignals(/**/)
+		void	startSignals(/**/);
 
 	public:
 
@@ -51,7 +59,9 @@ class WebServer
 
 		void	acceptConnection(int servVecPos);
 
-		void	readRequest(int cliVecPos);
+		int		readRequest(int cliVecPos);
+
+		void	processRequest(int vectorPos);
 
 		void	sendResponse(int vectorPos /*, Respose*/);
 

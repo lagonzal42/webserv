@@ -12,10 +12,9 @@ MAIN		= main Parser Request #WebServer ResponseGenerator
 
 
 SRC_DIR		:= src
-SRCS		:= $(addsuffix .cpp, $(MAIN))
+SRCS		:= $(addsuffix .cpp, $(MAIN)) 
 # if we want to put files in differ folders:
 # $(addprefix <folder root>, $(addsuffix .cpp, $(<folder name above>)))
-
 SRCS		:= $(SRCS:%=$(SRC_DIR)/%)
 
 BUILD_DIR	:= .build

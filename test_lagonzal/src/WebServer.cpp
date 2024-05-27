@@ -9,11 +9,11 @@ void	WebServer::serverLoop(void)
 {
 	while (!stopSignal)
 	{
-		int events = poll(pollFDS, pollFDS.size(), 5000);
+		int events = poll(&pollFDS[0], pollFDS.size(), 5000);
 
 		if (events != 0)
 		{
-			for (size_t i = 0; i < pollFDS.size(), i++)
+			for (size_t i = 0; i < pollFDS.size(); i++)
 			{
 				if (pollFDS[i].revents & POLLIN)
 				{
@@ -33,6 +33,10 @@ void	WebServer::serverLoop(void)
 				}
 				else if (pollFDS[i].revents & POLLOUT)
 				{
+<<<<<<< HEAD
+=======
+					//BUILD RESPONSE HERE
+>>>>>>> 650b94c6e87a936fac26ec82615890eb2c708593
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int vectorPos = cliSockPos - clientSockets.begin();
 					buildResponse(vectorPos);
@@ -51,17 +55,17 @@ void	WebServer::acceptConnection(int vectorPos)
 
 	int	clientSocket = accept(serverSockets[vectorPos], (struct sockaddr *)&clientAddr, &clientAddrLen);
 	pollFDS.push_back({clientSocket, POLLIN, 0});
-	clientSockets.push_back(clientSockets);
+	clientSockets.push_back(clientSocket);
 	requests.push_back(Request());
 }
 
-int WebServer::readRequest(int vectorPos)
+int WebServer::readRequest(int cliVecPos)
 {
-	int result = requests[vectorPos].readRequest(clientSockets[vectorPos]);
+	int result = requests[cliVecPos].readRequest(clientSockets[cliVecPos]);
 	if (result)
 	{
 		std::cout << "Failed reading the request from the client socket" << std::endl;
-		cleanVectors(vectorPos);
+		cleanVectors(cliVecPos);
 	}
 }
 
@@ -97,7 +101,7 @@ char	*WebServer::buildResponse(int cliVecPos)
 // }
 
 
-void	cleanVectors(int vectorPos)
+void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 		
@@ -107,5 +111,5 @@ void	cleanVectors(int vectorPos)
 	pollFDS.erase(pollFDS.begin() + i);
 	clientSockets.erase(clientSockets.begin() + vectorPos);
 	requests.erase(requests.begin() + vectorPos);
-	std::cout << "Closed connection with clients" << std::endl;
+	std::cout << "Closed connection with client" << std::endl;
 }

@@ -1,0 +1,13 @@
+*.o
+*.a
+*.exe
+*.out
+test
+webserv
+server
+client
+*.rpt
+*.dSYM
+.DS_Store
+.vscode/*
+.build/*

@@ -1,5 +1,5 @@
 TODO: 
-NEXT: 
+NEXT: Try if works parser with another functions
 
 
 

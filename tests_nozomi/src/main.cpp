@@ -94,6 +94,7 @@ void handle_connection(int client_socket)
 
 
 
+
 		// Serve appropriate file based on the requested URL
 
 //*************this is to know how it works HTTP request*************//
@@ -150,7 +151,7 @@ void handle_connection(int client_socket)
 		else
 		{
 		// Example:
-		std::string requested_url = "/"; // Placeholder for requested URL
+		std::string requested_url = "/"; // Place holder for requested URL
 		if (requested_url == "/") {
 			std::ifstream file("docs/indexbird.html", std::ios::in | std::ios::binary);
 			if (!file.is_open())
@@ -294,6 +295,20 @@ int	main(int argc, char *argv[])
 	std::cout << parser << RESET;
 	std::cout << std::setw(40) << "======>>> print test <<<======" << "\n" << std::endl;
 //************** config parser **************//
+
+//************** check if it's working the getter **************//
+Parser::Location location = parser.getCurLocation("/cgi-bin/", "8080");
+
+std::cout << CYAN << std::setw(40) << "======>>> print test <<<======" << std::endl;
+std::cout << "name: " << location.name << "\nroot: " << location.root << "\nmethod: ";
+for (std::vector<std::string>::const_iterator it = location.methods.begin(); it != location.methods.end(); ++it)
+	std::cout << *it << " ";
+std::cout << std::endl;
+std::cout << std::setw(40) << "======>>> print test <<<======" << "\n" RESET << std::endl;
+
+//************** check if it's working the getter **************//
+
+	
 	//maybe I need to put Server class outside of the parser class
 
 //************** provide sockets **************//

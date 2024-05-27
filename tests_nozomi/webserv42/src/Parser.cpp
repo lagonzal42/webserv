@@ -432,21 +432,47 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 {
 	//I think I will recieve path ---  "/upload/img"   port ---  "8080"
 	Parser::Location ret;
+	std::cout << RED << "Im in the getCurLocation!" RESET << std::endl;
+	std::cout << "path: " << path << "!\nport: " << port << "!" << std::endl;
 
-	//try to find server by server port number
+	// Retrieve all servers
 	std::map<std::string, Parser::Server> servers = this->getServers();
-	std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
+
+	// Debug: Display information about the first server
+	std::map<std::string, Parser::Server>::const_iterator test_iter = servers.begin();
+	const Parser::Server &test = test_iter->second;
+	std::cout << BLUE "name: " << test.name << "!\nhost: " << test.host << "!\nport: " << test.port << "!" RESET << std::endl; 
+	
+	// Find server by port number
+	// std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
+	// if (server_iter == servers.end())
+	// {
+	// 	// No server found for the given port
+	// 	std::cout << RED << "Im leaving from the getCurLocation!" RESET << std::endl;
+	// 	return ret;
+	// }
+	// std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
+	// By find function
+
+	std::map<std::string, Parser::Server>::const_iterator server_iter;
+	for (server_iter = servers.begin(); server_iter != servers.end(); ++server_iter)
+	{
+		const Parser::Server &server = server_iter->second;
+		if (server.port == port)
+			break ;
+	}
 	if (server_iter == servers.end())
 	{
-		// If no server found for the given port, return as a error
+		// No server found for the given port
+		std::cout << RED << "Im leaving from the getCurLocation!" RESET << std::endl;
 		return ret;
 	}
 	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
 
 	const Parser::Server &curServer = server_iter->second;
+
+	// Find exact match for the location using the path
 	std::vector<Parser::Location>::const_iterator location_iter;
-	// Find the location in the server using the path
-	// if it has the exactly same path, it's fine. but if it's not, I need to search the closest one
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
@@ -456,7 +482,8 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 			return location;
 		}
 	}
-	//OK, now I have to look for the closest matching path
+
+	// No exact match found, look for the cosest matching path
 	const Parser::Location* bestMatch = NULL;
 	size_t longestMatchLength = 0;
 

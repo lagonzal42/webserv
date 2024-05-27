@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
+#include "Parser.hpp"
 
 #define GET 0
 #define POST 1
@@ -42,6 +43,7 @@ class WebServer
 		std::vector<Request>		requests;		//Request class vector in order to process requests and storage them till the socket is ready to write
 		std::vector<sockaddr_in>	serverAddrs;	//Server address vector to bind the server sockets
 		bool						stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
+		Parser						config;
 
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.

@@ -1,4 +1,5 @@
 #include "WebServer.hpp"
+#include "Parser.hpp"
 
 /**
  * @brief	The server loops until a stop signal is received, the 
@@ -72,6 +73,7 @@ int WebServer::readRequest(int cliVecPos)
 char	*WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
+	Parser::Location currentLoc = config.get
 
 	int i = 0;
 	for (; i < 3; i++)

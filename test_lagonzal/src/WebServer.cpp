@@ -34,10 +34,7 @@ void	WebServer::serverLoop(void)
 				}
 				else if (pollFDS[i].revents & POLLOUT)
 				{
-<<<<<<< HEAD
-=======
 					//BUILD RESPONSE HERE
->>>>>>> 650b94c6e87a936fac26ec82615890eb2c708593
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int vectorPos = cliSockPos - clientSockets.begin();
 					buildResponse(vectorPos);
@@ -73,7 +70,7 @@ int WebServer::readRequest(int cliVecPos)
 char	*WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
-	Parser::Location currentLoc = config.get
+	Parser::Location currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
 
 	int i = 0;
 	for (; i < 3; i++)
@@ -85,7 +82,7 @@ char	*WebServer::buildResponse(int cliVecPos)
 	switch(i)
 	{
 		case(GET):
-
+			char * response = generateGetResponse(requests[i], currentLoc, config.getServer(requests[cliVecPos].getPort(), requests[cliVecPos].getHost()));
 			break;
 		case(POST):
 
@@ -94,8 +91,13 @@ char	*WebServer::buildResponse(int cliVecPos)
 		case(DELETE):
 
 			break;
+		case(INVALID_METHOD)
+
+			break;
 	}
 }
+
+
 
 // void WebServer::sendResponse() //still implementing
 // {

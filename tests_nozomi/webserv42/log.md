@@ -1,4 +1,4 @@
-TODO: 
+TODO: ADD exceptinon in getCurLocation when the path doesn't match
 NEXT: Try if works parser with another functions
 
 
@@ -12,9 +12,11 @@ DONE: Put exception
 DONE: Remove unused argument
 DONE: Test if it can run a server
 DONE: Make getter function to find the current/closest location
+DONE: ADD getServer
 
 
 
 ===========================================
 - When it's not in the sever block, but start location block, how treat it, error or exeption?
+- If it's not closed by '/', getCurLocation doesn't work
 

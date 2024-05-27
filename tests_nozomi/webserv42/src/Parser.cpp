@@ -94,9 +94,9 @@ Parser::Location	Parser::processLocation( std::string const & block )
 				std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
 				std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
 				break ;
-			}
-		}
-	}
+			} // block.find(it->name) != std::string::npos
+		} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
+	} // !this->_serversDefault.empty()
 
 	std::istringstream iss(block);
 	std::string line;
@@ -161,7 +161,7 @@ Parser::Location	Parser::processLocation( std::string const & block )
 			// std::cout << RED << line << ": It's not in location block. I will put an exception" RESET << std::endl;
 				// break ;
 		}
-	}
+	} // std::getline(iss, line)
 //=== TEST ===//
 	// std::cout << "ret.name: " << ret.name << std::endl;
 	// std::cout << "ret.root: " << ret.root << std::endl;
@@ -211,7 +211,7 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 			ret.locations.push_back(*defIt);
 			std::cout << BLUE "I added things that wasn't there! "  RESET << std::endl;
 		}
-	}
+	} // !this->_serversDefault.empty()
 	ret.name = tempServer.name;
 	ret.port = tempServer.port;
 	ret.root = tempServer.root;
@@ -256,7 +256,7 @@ std::string	Parser::extractWord(std::string const & str, std::string const & key
 		}
 		if (foundKey && foundSpace && *it != ';' && *it != '{' && *it != ' ')
 			ret.push_back(*it);
-	}
+	} // std::string::const_iterator it = str.begin(); it != str.end(); ++it
 	return ret;
 }
 
@@ -370,7 +370,7 @@ void	Parser::parseByLine(std::string const & line)
 			return ;
 		}
 		obtainServerInfo(&tempServer, line);
-	}
+	} // inServerBlock && !inLocationBlock
 	if (inLocationBlock)
 	{
 		serverBlock += line; // Concatenate the current line to the block
@@ -387,7 +387,7 @@ void	Parser::parseByLine(std::string const & line)
 			inLocationBlock = false;
 			locationBlock = "";
 		}
-	}
+	} // inLocationBlock
 }
 
 bool	Parser::parse( std::string const & conf )
@@ -415,6 +415,25 @@ std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 	return this->_servers;
 }
 
+Parser::Server	const Parser::getServer( std::string const & port ) const
+{
+	Parser::Server ret;
+	std::cout << BLUE << "Im in the getServer!" RESET << std::endl;
+	std::cout << "port: " << port << std::endl;
+	std::map<std::string, Parser::Server> servers = this->getServers();
+
+	std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
+	if (server_iter == servers.end())
+	{
+		// No server found for the given port
+		std::cout << RED << "Im leaving from the getServer!" RESET << std::endl;
+		return ret;
+	}
+	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
+	return server_iter->second;
+}
+
+
 std::map<std::string, Parser::Server>	const & Parser::getDefServer( void ) const
 {
 	return this->_serversDefault;
@@ -432,44 +451,10 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 {
 	//I think I will recieve path ---  "/upload/img"   port ---  "8080"
 	Parser::Location ret;
-	std::cout << RED << "Im in the getCurLocation!" RESET << std::endl;
-	std::cout << "path: " << path << "!\nport: " << port << "!" << std::endl;
+	std::cout << BLUE << "Im in the getCurLocation!" RESET << std::endl;
+	std::cout << "path: " << path << "\nport: " << port << std::endl;
 
-	// Retrieve all servers
-	std::map<std::string, Parser::Server> servers = this->getServers();
-
-	// Debug: Display information about the first server
-	std::map<std::string, Parser::Server>::const_iterator test_iter = servers.begin();
-	const Parser::Server &test = test_iter->second;
-	std::cout << BLUE "name: " << test.name << "!\nhost: " << test.host << "!\nport: " << test.port << "!" RESET << std::endl; 
-	
-	// Find server by port number
-	// std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
-	// if (server_iter == servers.end())
-	// {
-	// 	// No server found for the given port
-	// 	std::cout << RED << "Im leaving from the getCurLocation!" RESET << std::endl;
-	// 	return ret;
-	// }
-	// std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
-	// By find function
-
-	std::map<std::string, Parser::Server>::const_iterator server_iter;
-	for (server_iter = servers.begin(); server_iter != servers.end(); ++server_iter)
-	{
-		const Parser::Server &server = server_iter->second;
-		if (server.port == port)
-			break ;
-	}
-	if (server_iter == servers.end())
-	{
-		// No server found for the given port
-		std::cout << RED << "Im leaving from the getCurLocation!" RESET << std::endl;
-		return ret;
-	}
-	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
-
-	const Parser::Server &curServer = server_iter->second;
+	const Parser::Server &curServer = this->getServer(port);
 
 	// Find exact match for the location using the path
 	std::vector<Parser::Location>::const_iterator location_iter;

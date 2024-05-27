@@ -54,10 +54,9 @@ class Parser
 			Parser & operator=( Parser const & src );
 			bool	parse( std::string const & conf );
 			std::map<std::string, Server>	const & getServers( void ) const;
+			Server	const getServer( std::string const & port ) const;
 			std::map<std::string, Server>	const & getDefServer( void ) const;
 			std::string	const & getConfFile( void ) const;
-			//I will make two function, one to return methods vector, another to return as a boolean
-			// std::vector<std::string> const & getMethodPath( std::string const & path ) const;
 			Location const getCurLocation( std::string const & path, std::string const & port ) const;
 
 

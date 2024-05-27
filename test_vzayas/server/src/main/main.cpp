@@ -86,75 +86,51 @@ void	doStandard(std::string& fileName, int client_socket)
 	close(client_socket);
 }
 
-// Una función para obtener el valor de una cabecera
-std::string getHeaderValue(const std::string& headers, const std::string& headerName) {
-    std::regex regex(headerName + ": (.+)\r\n");
-    std::smatch match;
-    if (std::regex_search(headers, match, regex)) {
-        return match[1].str();
-    }
-    return "";
+std::string getFilename(const std::string& disposition) {
+    size_t start_pos = disposition.find("filename=\"");
+    if (start_pos == std::string::npos) return "";
+    start_pos += 10; // Skip 'filename="'
+    size_t end_pos = disposition.find("\"", start_pos);
+    if (end_pos == std::string::npos) return "";
+    return disposition.substr(start_pos, end_pos - start_pos);
 }
 
-void doPost(std::string& fileName, std::string& request, int client_socket) {
-    // Encuentra el inicio de las cabeceras y el cuerpo de la solicitud
-    size_t header_pos = request.find("\r\n\r\n");
-    if (header_pos == std::string::npos) {
-        std::cerr << "Invalid POST request" << std::endl;
-        return;
-    }
-    std::string headers = request.substr(0, header_pos);
-    std::string body = request.substr(header_pos + 4);
-
-    // Verifica el tipo de contenido
-    std::string content_type = getHeaderValue(headers, "Content-Type");
-    if (content_type.find("multipart/form-data") == std::string::npos) {
-        std::cerr << "Unsupported Content-Type" << std::endl;
-        return;
-    }
-
-    // Extrae el límite de los datos
-    std::string boundary = "--" + content_type.substr(content_type.find("boundary=") + 9);
-    
-    // Procesa las partes del multipart
-    size_t start = 0;
-    while ((start = body.find(boundary, start)) != std::string::npos) {
-        size_t end = body.find(boundary, start + boundary.size());
-        if (end == std::string::npos) break;
-
-        std::string part = body.substr(start + boundary.size() + 2, end - start - boundary.size() - 4);
-        start = end;
-
-        // Extrae las cabeceras de la parte
+void doPost(std::string request, int client_socket) {
+    // Divide el cuerpo en partes
+    std::istringstream ss(request);
+    std::string part;
+    while (std::getline(ss, part, '\n')) {
+        // Encuentra el inicio del cuerpo de la parte
         size_t part_header_pos = part.find("\r\n\r\n");
         if (part_header_pos == std::string::npos) continue;
         std::string part_headers = part.substr(0, part_header_pos);
         std::string part_body = part.substr(part_header_pos + 4);
 
         // Obtiene el nombre del archivo
-        std::regex regex("Content-Disposition: form-data; name=\"([^\"]+)\"; filename=\"([^\"]+)\"");
-        std::smatch match;
-        if (std::regex_search(part_headers, match, regex)) {
-            std::string field_name = match[1].str();
-            std::string filename = match[2].str();
+        size_t start_pos = part_headers.find("Content-Disposition: ");
+        if (start_pos == std::string::npos) continue;
+        start_pos += 21; // Skip 'Content-Disposition: '
+        size_t end_pos = part_headers.find("\r\n", start_pos);
+        if (end_pos == std::string::npos) continue;
+        std::string disposition = part_headers.substr(start_pos, end_pos - start_pos);
+        std::string filename = getFilename(disposition);
 
-            // Guarda el archivo
-            std::ofstream ofs("./uploads/" + filename, std::ios::binary);
-            ofs << part_body;
-            ofs.close();
+        // Guarda el archivo
+        std::ofstream ofs("./uploads/" + filename, std::ios::binary);
+        ofs << part_body;
+        ofs.close();
 
-            std::cout << "Saved file: " << filename << std::endl;
-        }
+        std::cout << "Saved file: " << filename << std::endl;
     }
 
     // Crear una respuesta simple
     std::string response_body = "<html><body><h1>Files Uploaded</h1></body></html>";
-    std::stringstream ss;
-    ss << response_body.size();
+    std::stringstream res;
+    res << response_body.size();
     std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + response_body;
-    send(client_socket, response.c_str(), response.size(), 0);
 
-    close(client_socket);
+    // Enviar la respuesta al cliente
+    send(client_socket, response.c_str(), response.size(), 0);
 }
 
 /**
@@ -185,7 +161,7 @@ void handle_connection(int client_socket)
 		if (method == "POST") {
             // Procesar la solicitud POST
             if (fileName == "/home/vzayas-s/Documents/webserv/test_vzayas/admin/web/index.html")
-                doPost(fileName, req, client_socket);
+                doPost(fileName, client_socket);
             else if (fileName.find("test_vzayas/server/http/uploads/cgi") != std::string::npos)
                 doCgi(fileName, client_socket);
             else

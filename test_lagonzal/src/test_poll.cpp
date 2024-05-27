@@ -96,7 +96,7 @@ void	doStandard(std::string& fileName, int client_socket)
 	std::ifstream file(fileName, std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
-		std::cerr << "Failed to open index.html" << std::endl;
+		std::cerr << "Failed to open "<< fileName << std::endl;
 		return;
 	}
 
@@ -147,7 +147,7 @@ void handle_connection(int client_socket)
 		{
 			std::cout << "The file is not in the cgi-bin directory" << std::endl;
 			if (fileName.length() == 1)
-				fileName = "./index.html";
+				fileName = "index.html";
 			doStandard(fileName, client_socket);
 		}
 	}

@@ -19,6 +19,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define GET 0
+#define POST 1
+#define DELETE 2
+#define INVALID_METHOD 3
+
 class WebServer
 {
 	private:
@@ -52,6 +57,8 @@ class WebServer
 		void	acceptConnection(int servVecPos);
 
 		void	readRequest(int cliVecPos);
+
+		std::string buildResponse(int cliVecPos);
 
 		void	sendResponse(int vectorPos /*, Respose*/);
 

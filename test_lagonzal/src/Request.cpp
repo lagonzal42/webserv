@@ -47,6 +47,11 @@ int Request::readRequest(int client_socket)
 	std::istringstream line_ss(line);
 	line_ss >> _method >> _path >> _version;
 
+	std::istringstream pathfinder(_path);
+	std::getline(pathfinder, _path, '?');
+	std::getline(pathfinder, _queryString, '?');
+
+
 	//loops each line apart from the first
 	while (std::getline(reqStream, line))
 	{
@@ -71,7 +76,7 @@ int Request::readRequest(int client_socket)
 		{
 			std::string connection;
 			std::getline(line_ss, connection);
-			_keepAlive = connection == "keep-alive" ? true : false; //the connection needs to be kept alive?
+			_keepAlive = connection == "keep-alive" ? true : false; //the cconnection needs to be kept alive?
 		}
 		else if (title == "Transfer-Encoding")
 		{
@@ -85,9 +90,25 @@ int Request::readRequest(int client_socket)
 }
 
 std::string	Request::getMethod(void) const {return _method;}
+std::string	Request::getQueryString(void) const {return _queryString;}
 std::string	Request::getVersion(void) const {return _version;}
 std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
 bool		Request::getConection(void) const {return _keepAlive;}
+
+
+void	Request::print(void) const
+{
+	std::cout << "============REQUEST==============" << std::endl;
+	std::cout << "Method: \"" << _method << "\"" << std::endl;
+	std::cout << "Query String: \"" << _queryString << "\"" << std::endl;
+	std::cout << "Version: \"" << _version << "\"" << std::endl;
+	std::cout << "Path: \"" << _path << "\"" << std::endl;
+	std::cout << "Host: \"" << _host << "\"" << std::endl;
+	std::cout << "Port: \"" << _port << "\"" << std::endl;
+	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
+	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
+
+}

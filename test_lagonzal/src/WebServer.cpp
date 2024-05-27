@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   WebServer.cpp                                      :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: lagonzal <larraingonzalez@gmail.com>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/21 11:47:43 by lagonzal          #+#    #+#             */
-/*   Updated: 2024/05/21 11:47:43 by lagonzal         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "WebServer.hpp"
 
 /**
@@ -37,7 +25,7 @@ void	WebServer::serverLoop(void)
 					}
 					else
 					{
-						std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS.fd);
+						std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 						int vectorPos = cliSockPos - clientSockets.begin();
 						readRequest(vectorPos);
 						pollFDS[i].events = POLLOUT;
@@ -45,9 +33,9 @@ void	WebServer::serverLoop(void)
 				}
 				else if (pollFDS[i].revents & POLLOUT)
 				{
-					//BUILD RESPONSE HERE
-					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS.fd);
+					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int vectorPos = cliSockPos - clientSockets.begin();
+					buildResponse(vectorPos);
 					sendResponse(pollFDS[i].fd /*, response here*/);
 					cleanVectors(vectorPos);
 				}
@@ -77,10 +65,36 @@ int WebServer::readRequest(int vectorPos)
 	}
 }
 
-void WebServer::sendResponse() //still implementing
+char	*WebServer::buildResponse(int cliVecPos)
 {
-	
+	std::string	vec[] = {"GET", "POST", "DELETE"};
+
+	int i = 0;
+	for (; i < 3; i++)
+	{
+		if (requests[cliVecPos].getMethod() == vec[i])
+			break;
+	}
+
+	switch(i)
+	{
+		case(GET):
+
+			break;
+		case(POST):
+
+			break;
+
+		case(DELETE):
+
+			break;
+	}
 }
+
+// void WebServer::sendResponse() //still implementing
+// {
+	
+// }
 
 
 void	cleanVectors(int vectorPos)

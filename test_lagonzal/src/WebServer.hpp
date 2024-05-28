@@ -27,12 +27,6 @@
 #define DELETE 2
 #define INVALID_METHOD 3
 
-
-#define GET 0
-#define POST 1
-#define DELETE 2
-#define INVALID_METHOD 3
-
 class WebServer
 {
 	private:
@@ -70,7 +64,7 @@ class WebServer
 
 		void	processRequest(int vectorPos);
 
-		std::string buildResponse(int cliVecPos);
+		char	*buildResponse(int cliVecPos);
 
 		void	sendResponse(int vectorPos /*, Respose*/);
 

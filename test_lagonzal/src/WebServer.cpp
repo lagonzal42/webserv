@@ -1,5 +1,8 @@
 #include "WebServer.hpp"
 #include "Parser.hpp"
+#ifndef METHOD_NOT_IMPLEMENTED
+# define METHOD_NOT_IMPLEMENTED	501
+#endif
 
 /**
  * @brief	The server loops until a stop signal is received, the 
@@ -16,9 +19,9 @@ void	WebServer::serverLoop(void)
 		{
 			for (size_t i = 0; i < pollFDS.size(); i++)
 			{
+				std::vector<int>::iterator servSockPos = std::find(serverSockets.begin(), serverSockets.end(), pollFDS[i].fd);
 				if (pollFDS[i].revents & POLLIN)
 				{
-					std::vector<int>::iterator servSockPos = std::find(serverSockets.begin(), serverSockets.end(), pollFDS[i].fd);
 					if (servSockPos != serverSockets.end()) //The POLLIN event happened in one of the server sockets
 					{
 						int vectorPos = servSockPos - serverSockets.begin();
@@ -36,9 +39,9 @@ void	WebServer::serverLoop(void)
 				{
 					//BUILD RESPONSE HERE
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
-					int vectorPos = cliSockPos - clientSockets.begin();
-					buildResponse(vectorPos);
-					sendResponse(pollFDS[i].fd /*, response here*/);
+					int cliVectorPos = cliSockPos - clientSockets.begin();
+					char *response = buildResponse(cliVectorPos, servSockPos - serverSockets.begin());
+					sendResponse(pollFDS[i].fd , response);
 					cleanVectors(vectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
@@ -79,22 +82,26 @@ char	*WebServer::buildResponse(int cliVecPos)
 			break;
 	}
 
+	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
+	char *response;
 	switch(i)
 	{
 		case(GET):
-			char * response = generateGetResponse(requests[i], currentLoc, config.getServer(requests[cliVecPos].getPort(), requests[cliVecPos].getHost()));
+			std::cout << "Get Resonse" << std::endl;
+			response = ResponseGenerator::generateGetResponse(requests[i], currentLoc, config.getServer(requests[cliVecPos].getPort(), requests[cliVecPos].getHost()));
 			break;
 		case(POST):
-
+			std::cout << "Post Response" << std::endl;
 			break;
-
 		case(DELETE):
-
+			std::cout << "Delete Response" << std::endl;
 			break;
-		case(INVALID_METHOD)
-
+		case(INVALID_METHOD):
+			std::cout << "Invalid method response" << std::endl;
+			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED);
 			break;
 	}
+	return(response);
 }
 
 

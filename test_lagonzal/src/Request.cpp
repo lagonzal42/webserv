@@ -11,7 +11,7 @@
 #endif
 
 Request::Request(void)
-: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding("")
+: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _keepAlive(false), _body("")
 {}
 
 Request::~Request(void)
@@ -37,6 +37,11 @@ int Request::readRequest(int client_socket)
 			requestStr += std::string(buffer);
 		}
 	}
+
+	size_t pos = requestStr.find("\r\n\r\n");
+	if (pos != std::string::npos)
+		_body = requestStr.substr(pos + 4);
+
 	std::istringstream reqStream(requestStr);
 	std::string line;
 	std::string title;
@@ -67,7 +72,8 @@ int Request::readRequest(int client_socket)
 			if (colonPos != std::string::npos) // if it can find another : means there is host and port
 			{
 				_host = hostPort.substr(0, colonPos);
-				_port = hostPort.substr(colonPos + 1);
+				// I needed to put this function to omid unkown character
+				_port = extractNumbers(hostPort.substr(colonPos + 1));
 			}
 			else //there is only host
 				_host = hostPort;
@@ -111,4 +117,15 @@ void	Request::print(void) const
 	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
 
+}
+
+std::string	Request::extractNumbers(std::string const & str)
+{
+	std::string ret;
+	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+	{
+		if (std::isdigit(*it))
+			ret.push_back(*it);
+	}
+	return ret;
 }

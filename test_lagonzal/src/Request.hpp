@@ -26,6 +26,7 @@ class Request{
 		std::string	_port;
 		std::string	_encoding;
 		std::string _queryString;
+		std::string _body;
 		
 		bool	_keepAlive;
 
@@ -44,4 +45,6 @@ class Request{
 		bool		getConection(void) const;
 
 		void		print(void) const;
+		std::string	extractNumbers(std::string const & str);
+
 };

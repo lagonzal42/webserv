@@ -1,14 +1,13 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   WebServer.hpp                                      :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: lagonzal <larraingonzalez@gmail.com>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/21 11:14:22 by lagonzal          #+#    #+#             */
-/*   Updated: 2024/05/21 11:14:22 by lagonzal         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+/**
+ * @file WebServer.hpp
+ * @author Larrain Gonzalez (larraingonzalez@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-05-28
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 
 #pragma once
 
@@ -41,8 +40,9 @@ class WebServer
 
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
-		void	startSignals(/**/);
+		void	startSignals(void);
 
+		void signalHandle(void);
 	public:
 
 		WebServer(void);
@@ -72,10 +72,11 @@ class WebServer
 
 
 
-
+		void	setStopSignal(bool stop);
 	
 	public:
 
 
 	
 };
+

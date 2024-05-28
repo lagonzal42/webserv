@@ -1,13 +1,31 @@
+/**
+ * @file WebServer.cpp
+ * @author Larrain Gonzalez (larraingonzalez@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-05-28
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #include "WebServer.hpp"
 #include "Parser.hpp"
+#include <signal.h>
 #ifndef METHOD_NOT_IMPLEMENTED
 # define METHOD_NOT_IMPLEMENTED	501
 #endif
 
-/**
- * @brief	The server loops until a stop signal is received, the 
- * 
- */
+void WebServer::signalHandle(void)
+{
+	stopSignal = true;
+}
+
+void	WebServer::startSignals(void)
+{
+	signal(SIGINT, this->signalHandle);
+	signal(SIGQUIT, this->signalHandle);
+}
 
 void	WebServer::serverLoop(void)
 {

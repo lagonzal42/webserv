@@ -1,14 +1,13 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   WebServer.hpp                                      :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: lagonzal <larraingonzalez@gmail.com>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/21 11:14:22 by lagonzal          #+#    #+#             */
-/*   Updated: 2024/05/21 11:14:22 by lagonzal         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+/**
+ * @file WebServer.hpp
+ * @author Larrain Gonzalez (larraingonzalez@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-05-28
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 
 #pragma once
 
@@ -18,6 +17,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <algorithm>
+#include <iostream>
+#include "Parser.hpp"
+
+#define GET 0
+#define POST 1
+#define DELETE 2
+#define INVALID_METHOD 3
 
 class WebServer
 {
@@ -29,11 +36,13 @@ class WebServer
 		std::vector<Request>		requests;		//Request class vector in order to process requests and storage them till the socket is ready to write
 		std::vector<sockaddr_in>	serverAddrs;	//Server address vector to bind the server sockets
 		bool						stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
+		Parser						config;
 
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
-		void	startSignals(/**/)
+		void	startSignals(void);
 
+		void signalHandle(void);
 	public:
 
 		WebServer(void);
@@ -51,18 +60,23 @@ class WebServer
 
 		void	acceptConnection(int servVecPos);
 
-		void	processRequest(int cliVecPos);
+		int		readRequest(int cliVecPos);
 
-		void	sendResponse(int socketFD /*, Respose*/);
+		void	processRequest(int vectorPos);
+
+		char	*buildResponse(int cliVecPos);
+
+		void	sendResponse(int vectorPos /*, Respose*/);
 
 		void	cleanVectors(int vectorPos);
 
 
 
-
+		void	setStopSignal(bool stop);
 	
 	public:
 
 
 	
 };
+

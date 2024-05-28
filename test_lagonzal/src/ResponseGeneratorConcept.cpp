@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ResponseGenerator.hpp"
+#include "ResponseGeneratorConcept.hpp"
 
 //Canonic orthodox, not mandatory at this point but is considered a good practice
 ResponseGenerator::ResponseGenerator(){}

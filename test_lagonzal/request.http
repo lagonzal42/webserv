@@ -32,3 +32,12 @@ Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
 Sec-Fetch-User: ?1
 Priority: u=1
+
+================================ CURL =======================================
+
+Received: GET /index HTTP/1.1
+Host: 127.0.0.1:8081
+User-Agent: curl/7.68.0
+Accept: */*
+Transfer-Encoding: chunked
+

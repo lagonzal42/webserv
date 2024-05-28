@@ -14,6 +14,8 @@
 
 #include <string>
 
+
+
 class Request{
 
 	private:
@@ -22,17 +24,27 @@ class Request{
 		std::string	_path;
 		std::string	_host;
 		std::string	_port;
+		std::string	_encoding;
+		std::string _queryString;
+		std::string _body;
 		
 		bool	_keepAlive;
 
 	public:
-		Request(int client_socket);
+		Request(void);
 		~Request(void);
 
+		int readRequest(int client_socket);
 		std::string	getMethod(void) const;
+		std::string	getQueryString(void) const;
 		std::string	getVersion(void) const;
 		std::string	getPath(void) const;
 		std::string	getHost(void) const;
 		std::string	getPort(void) const;
+		std::string	getEncoding(void) const;
 		bool		getConection(void) const;
+
+		void		print(void) const;
+		std::string	extractNumbers(std::string const & str);
+
 };

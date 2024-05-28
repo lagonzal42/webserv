@@ -1,32 +1,21 @@
 #include "Request.hpp"
+#include "Utils.hpp"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 
 #ifndef BUFFER_SIZE
 # define BUFFER_SIZE 10000
 #endif
 
 Request::Request(void)
-: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding("")
+: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _body(""), _keepAlive(false) 
 {}
 
 Request::~Request(void)
 {}
-
-std::string	Request::extractNumbers(std::string const & str)
-{
-	std::string ret;
-	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
-	{
-		if (std::isdigit(*it))
-			ret.push_back(*it);
-	}
-	return ret;
-}
 
 int Request::readRequest(int client_socket)
 {
@@ -48,6 +37,11 @@ int Request::readRequest(int client_socket)
 			requestStr += std::string(buffer);
 		}
 	}
+
+	size_t pos = requestStr.find("\r\n\r\n");
+	if (pos != std::string::npos)
+		_body = requestStr.substr(pos + 4);
+
 	std::istringstream reqStream(requestStr);
 	std::string line;
 	std::string title;
@@ -57,6 +51,11 @@ int Request::readRequest(int client_socket)
 	std::getline(reqStream, line);
 	std::istringstream line_ss(line);
 	line_ss >> _method >> _path >> _version;
+
+	std::istringstream pathfinder(_path);
+	std::getline(pathfinder, _path, '?');
+	std::getline(pathfinder, _queryString, '?');
+
 
 	//loops each line apart from the first
 	while (std::getline(reqStream, line))
@@ -74,9 +73,7 @@ int Request::readRequest(int client_socket)
 			{
 				_host = hostPort.substr(0, colonPos);
 				// I needed to put this function to omid unkown character
-				_port = extractNumbers(hostPort.substr(colonPos + 1));
-				// std::replace(_host.begin(), _host.end(), '\r', '\0');
-				// std::replace(_port.begin(), _port.end(), '\r', '\0');
+				_port = Utils::extractNumbers(hostPort.substr(colonPos + 1));
 			}
 			else //there is only host
 				_host = hostPort;
@@ -85,7 +82,7 @@ int Request::readRequest(int client_socket)
 		{
 			std::string connection;
 			std::getline(line_ss, connection);
-			_keepAlive = connection == "keep-alive" ? true : false; //the connection needs to be kept alive?
+			_keepAlive = connection == "keep-alive" ? true : false; //the cconnection needs to be kept alive?
 		}
 		else if (title == "Transfer-Encoding")
 		{
@@ -99,9 +96,25 @@ int Request::readRequest(int client_socket)
 }
 
 std::string	Request::getMethod(void) const {return _method;}
+std::string	Request::getQueryString(void) const {return _queryString;}
 std::string	Request::getVersion(void) const {return _version;}
 std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
 bool		Request::getConection(void) const {return _keepAlive;}
+
+
+void	Request::print(void) const
+{
+	std::cout << "============REQUEST==============" << std::endl;
+	std::cout << "Method: \"" << _method << "\"" << std::endl;
+	std::cout << "Query String: \"" << _queryString << "\"" << std::endl;
+	std::cout << "Version: \"" << _version << "\"" << std::endl;
+	std::cout << "Path: \"" << _path << "\"" << std::endl;
+	std::cout << "Host: \"" << _host << "\"" << std::endl;
+	std::cout << "Port: \"" << _port << "\"" << std::endl;
+	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
+	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
+
+}

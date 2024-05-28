@@ -1,4 +1,4 @@
-TODO: ADD exceptinon in getCurLocation when the path doesn't match
+TODO: 
 NEXT: Try if works parser with another functions
 
 
@@ -13,6 +13,8 @@ DONE: Remove unused argument
 DONE: Test if it can run a server
 DONE: Make getter function to find the current/closest location
 DONE: ADD getServer
+DONE: ADD exceptinon in getCurLocation when the path doesn't match
+DONE: ADD Utils class to put functions
 
 
 

@@ -8,7 +8,7 @@ INCS		:= inc
 #------------------------------------------------#
 #   FILES                                        #
 #------------------------------------------------#
-MAIN		= main Parser Request #WebServer ResponseGenerator
+MAIN		= main Parser Request Utils#WebServer ResponseGenerator
 
 
 SRC_DIR		:= src

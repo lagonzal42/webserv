@@ -1,5 +1,6 @@
 #include <fstream>
 #include "Parser.hpp"
+#include "Utils.hpp"
 #include "colors.h"
 #include <algorithm>
 #include <iomanip>
@@ -164,7 +165,7 @@ Parser::Location	Parser::processLocation( std::string const & block )
 					ret.index = extractWord(line, info[i]);
 					break ;
 			case 8://max_body_size
-					num = extractNumbers(line);
+					num = Utils::extractNumbers(line);
 					ret.max_body_size = obtainSizeFromStr(num);
 					break ;
 			default: throw std::runtime_error("Unknown block type encountered: " + line);
@@ -228,16 +229,16 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 	return ret;
 }
 
-std::string	Parser::extractNumbers(std::string const & str)
-{
-	std::string ret;
-	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
-	{
-		if (std::isdigit(*it))
-			ret.push_back(*it);
-	}
-	return ret;
-}
+// std::string	Parser::extractNumbers(std::string const & str)
+// {
+// 	std::string ret;
+// 	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+// 	{
+// 		if (std::isdigit(*it))
+// 			ret.push_back(*it);
+// 	}
+// 	return ret;
+// }
 
 //It's a simple function, but could be useful?
 std::string	Parser::extractWord(std::string const & str, std::string const & key)
@@ -285,7 +286,7 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 	switch (i)
 	{
 	case 0:
-			tempServer->port = extractNumbers(temp);
+			tempServer->port = Utils::extractNumbers(temp);
 			tempServer->name = tempServer->port;
 			break ;
 	case 1:

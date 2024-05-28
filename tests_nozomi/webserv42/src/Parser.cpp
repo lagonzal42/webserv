@@ -80,9 +80,10 @@ Parser::Location	Parser::processLocation( std::string const & block )
 		{
 			if (block.find(it->name) != std::string::npos)
 			{
+				ret = *it;
+				// --- DELETE --- //
 				std::cout << GREEN "I found it! " << it->name << std::endl;
 				std::cout << RESET << block << std::endl;
-				ret = *it;
 				std::cout << "ret.name: " << ret.name << std::endl;
 				std::cout << "ret.root: " << ret.root << std::endl;
 				std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
@@ -93,6 +94,8 @@ Parser::Location	Parser::processLocation( std::string const & block )
 					std::cout << *it << " ";
 				std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
 				std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
+				// --- DELETE --- //
+
 				break ;
 			} // block.find(it->name) != std::string::npos
 		} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
@@ -132,7 +135,14 @@ Parser::Location	Parser::processLocation( std::string const & block )
 					ret.name = extractWord(line, info[i]);//location / {   ==> I have to remove {
 					break ;
 			case 1://method	
-					ret.methods = obtainMethod(line);
+					try
+					{
+						ret.methods = obtainMethod(line);
+					}
+					catch (const std::exception & e)
+					{
+						throw std::runtime_error("Unknown block type encountered: " + line);
+					}
 					break ;
 			case 2://root
 					ret.root = extractWord(line, info[i]);
@@ -295,17 +305,61 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 	}
 }
 
+	/*******/
+	/*     */
+	/* WIP */
+	/*     */
+	/*******/
+
 std::vector<std::string> Parser::obtainMethod(std::string const & line)
 {
-	std::vector<std::string>	ret;
-	std::string	methods[3] = {"GET", "POST", "DELETE"};
-	int	i;
-	for (i = 0; i < 3; i++)
+	std::vector<std::string> ret;
+	size_t i = 0;
+	size_t j = 0;
+	while (i < line.length())
 	{
-		if (line.find(methods[i]) != std::string::npos)
-			ret.push_back(methods[i]);
+		while (i < line.length() && std::isspace(line[i]))
+			i++;
+		j = i;
+		while (j < line.length() && line[j] != ' ' && line[j] != ';')
+			j++;
+		if (i < line.length() && j < line.length() && j > i)
+		{
+			std::string method = line.substr(i, j - i);
+			if (method != "method")
+			{
+				// std::cout << "method: !" << method  << "!" << std::endl;
+				ret.push_back(method);
+			}
+		} // i < line.length() && j < line.length()
+		i = j + 1;
+	} // i < line.length()
+	std::string	allowed_methods[3] = {"GET", "POST", "DELETE"};
+	std::vector<std::string>::const_iterator it;
+	for(it = ret.begin(); it!= ret.end(); ++it)
+	{
+		bool valid = false;
+		for(i = 0; i < 3; ++i)
+		{
+			if(*it == allowed_methods[i])
+			{
+				valid = true;
+				break ;
+			}
+		}
+		if (!valid)
+			throw std::runtime_error("Unknown method encountered: " + *it);
 	}
 	return ret;
+	// std::vector<std::string>	ret;
+	// std::string	methods[3] = {"GET", "POST", "DELETE"};
+	// int	i = 0;
+	// for (i = 0; i < 3; i++)
+	// {
+	// 	if (line.find(methods[i]) != std::string::npos)
+	// 		ret.push_back(methods[i]);
+	// }
+	// return ret;
 }
 
 
@@ -461,17 +515,15 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
-		if (location.root == path)
+		if (location.name == path)
 		{
 			std::cout << YELLOW "I found " << path << "!!!!" RESET << std::endl;
 			return location;
 		}
 	}
-
-	// No exact match found, look for the cosest matching path
+	// No exact match found, look for the closest matching path
 	const Parser::Location* bestMatch = NULL;
 	size_t longestMatchLength = 0;
-
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
@@ -479,20 +531,22 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		if (path.find(location.root) == 0)
 		{
 			size_t matchLength = location.root.length();
-			if (matchLength > longestMatchLength)
+			if (matchLength > longestMatchLength && path[location.root.length()] == '/')
 			{
 				longestMatchLength = matchLength;
 				bestMatch = &location;
 			}
 		}
 	}
-	if (bestMatch)
+	if (!bestMatch)
 	{
-		std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
-		return *bestMatch;
+		// instead of return ret, I want to put exception, or NULL
+		// return ret;
+		throw std::runtime_error("the root has not been encontered");
 	}
-	return ret;
-
+	// return ret;
+	std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
+	return *bestMatch;
 }
 
 

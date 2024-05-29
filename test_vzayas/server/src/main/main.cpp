@@ -64,19 +64,16 @@ void	doCgi(std::string& fileName, int client_socket)
 
 void	doStandard(std::string& fileName, int client_socket)
 {
-	std::cout << "Doing standard" << std::endl;
+	std::cout << "Doing GET" << std::endl;
 	std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
-	std::cout << "DUPLICATED" << std::endl;
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open index.html" << std::endl; // this trigger all time, returning the page or not. ???
 		return;
 	}
 
-	std::cout << "DUPLICATED 2" << std::endl;
 	std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
-	std::cout << "DUPLICATED 4" << std::endl;
 
 	//substitution to the to_string method
 	std::stringstream ss;
@@ -100,7 +97,7 @@ std::string getFilename(const std::string &contentDisposition) {
 }
 
 void doPost(std::string fileName, std::string request, int client_socket) {
-    std::cout << "Manolitpo pies de plata " << fileName << std::endl;
+	std::cout << "Doing POST" << std::endl;
 
     std::istringstream ss(request);
     std::string line;
@@ -152,7 +149,7 @@ void doPost(std::string fileName, std::string request, int client_socket) {
 
     // Save the file to the server
     if (!fileName.empty() && !fileContent.empty()) {
-        std::ofstream ofs(("/home/vzayas/webserv/test_vzayas/server/http/uploads/" + fileName).c_str(), std::ios::binary);
+        std::ofstream ofs(("/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads/" + fileName).c_str(), std::ios::binary);
         if (ofs.is_open()) {
             ofs.write(fileContent.c_str(), fileContent.size());
             ofs.close();
@@ -205,25 +202,22 @@ void handle_connection(int client_socket)
 
 		if (method == "POST") {
             // Procesar la solicitud POST
-            if (fileName == "/home/vzayas/webserv/test_vzayas/server/http/uploads")
-			{
-				std::cout << "POST request de Aingeru" << std::endl;
+            if (fileName == "/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads")
                 doPost(fileName, req, client_socket);
-			}
             // else if (fileName.find("test_vzayas/server/http/uploads/cgi") != std::string::npos)
             //     doCgi(fileName, client_socket);
             // else
             //     doStandard(fileName, client_socket);
         }
 		else {
-			if (fileName.find("test_vzayas/server/http/uploads/cgi") != std::string::npos) {
-				std::cout << "The file is in the cgi-bin directory" << std::endl;
+			if (fileName.find("/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads") != std::string::npos) {
+				// std::cout << "The file is in the cgi-bin directory" << std::endl;
 				doCgi(fileName, client_socket);
 			}
 			else {
-				std::cout << "The file is not in the cgi-bin directory" << std::endl;
+				// std::cout << "The file is not in the cgi-bin directory" << std::endl;
 				if (fileName.length() == 1)
-					fileName = "/home/vzayas/webserv/test_vzayas/admin/web/index.html";
+					fileName = "/home/vzayas-s/Documents/webserv/test_vzayas/admin/web/index.html";
 				doStandard(fileName, client_socket);
 			}
 		}

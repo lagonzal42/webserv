@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "ResponseGenerator_GET.hpp"
+#include "colors.h"
 
 #define GET 0
 #define POST 1

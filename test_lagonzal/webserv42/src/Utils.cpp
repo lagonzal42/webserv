@@ -35,7 +35,7 @@ std::string	Utils::extractNumbers(std::string const & str)
 }
 // --- Member functions --- //
 
-int	obtainIntFromStr(std::string const & num)
+int	Utils::obtainIntFromStr(std::string const & num)
 {
 	int	ret = 0;
 	std::istringstream iss(num);
@@ -46,4 +46,9 @@ int	obtainIntFromStr(std::string const & num)
 		// return 1; //put exception, end will never get return when it returns error
 	}
 	return ret;
+}
+
+void	debug(std::string str)
+{
+	std::cout << str << std::endl;
 }

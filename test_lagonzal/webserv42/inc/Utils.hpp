@@ -25,4 +25,7 @@ class Utils
 
 
 };
+
+void	debug(std::string str);
+
 #endif //UTILS_HPP

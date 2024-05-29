@@ -14,6 +14,7 @@ int main(int argc, char **argv, char **envp)
     
     if (webserv.initialize(envp, configFile))
         return (1);
+    std::cout << "Starting server Loop" << std::endl;
     webserv.serverLoop();
     webserv.serverClose();
 }

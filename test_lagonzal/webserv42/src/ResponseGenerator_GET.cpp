@@ -39,50 +39,66 @@
 # define BUFFER_SIZE 1024
 #endif
 
+#ifndef NOT_IMPLEMENTED
+# define NOT_IMPLEMENTED "Not implemented ^_^"
+#endif
+
+#include "colors.h"
+#include "Utils.hpp"
+
 /*=============================*/
 
-const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc/*, const Parser::Server& currentServ*/, std::vector<char *>& envp)
 {
+	debug(RED);
+	debug("ResponseGenerator::generateGetResponse");
+	debug(RESET);
+
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << "Method not allowed" << std::endl;
-		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
+		return (NOT_IMPLEMENTED);
+		//return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
-	// else if (currentLoc.name == "redir")
-	// {
-	// 	std::cout << "Processing Redirection GET request" << std::endl;
-	// 	//return (ResponseGenerator::getRedirResponse(??));
-	// }
+	else if (currentLoc.name == "redir")
+	{
+		std::cout << "Processing Redirection GET request" << std::endl;
+		//return (ResponseGenerator::getRedirResponse(??));
+		return (NOT_IMPLEMENTED);
+	}
 	else if (currentLoc.name == "cgi")
 	{
 		std::cout << "Processing CGI GET request" << std::endl;
-		return (ResponseGenerator::getCgiResponse(req, envp, currentServ));
+		return (ResponseGenerator::getCgiResponse(req, envp));
 	}
 	else if (currentLoc.autoindex && !req.getPath().empty() && req.getPath()[req.getPath().length() - 1] == '/')
 	{
 		std::cout << "Processing autoindex GET request" << std::endl;
-		return (ResponseGenerator::getAutoindexResponse(req, currentServ));
+		return (ResponseGenerator::getAutoindexResponse(req/*, currentServ*/));
 	}
 	else
 	{
 		std::cout << "Processing file GET request" << std::endl;
-		return (ResponseGenerator::getFileResponse(req, currentServ));
+		return (ResponseGenerator::getFileResponse(req));
 	}
 }
 
-const char	*ResponseGenerator::getFileResponse(Request& req,  const Parser::Server& currentServ)
+const char	*ResponseGenerator::getFileResponse(Request& req)
 {
 	std::string response;
 	std::stringstream responseStatus;
 	std::string filePath = "." + req.getPath();
 
 	responseStatus << 200 << " OK";
+	debug("gona open " + filePath);
 	std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open" << filePath << std::endl;
-		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		//return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		return (NOT_IMPLEMENTED);
 	}
+	debug("File opened");
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	std::stringstream ss;
@@ -93,7 +109,7 @@ const char	*ResponseGenerator::getFileResponse(Request& req,  const Parser::Serv
 	return ((response.c_str()));
 }
 
-const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::Server& currentServ)
+const char	*ResponseGenerator::getAutoindexResponse(Request& req/*, const Parser::Server& currentServ*/)
 {
 	std::string response, responseHead, responseBody;
 	std::string dirPath = "." + req.getPath();
@@ -103,7 +119,10 @@ const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::
 	
 
 	if (directory == NULL)
-		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
+	{
+		//return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
+		return (NOT_IMPLEMENTED);
+	}
 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
 	responseBody += "<html><head><title>Index of " + dirPath + "</title></head>";
 	responseBody += "<body><h1>Index of " + dirPath + "</h1>";
@@ -123,12 +142,13 @@ const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::
 	return (response.c_str());
 }
 
-const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>& envp, const Parser::Server& currentServ)
+const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>& envp)
 {
 	std::string queryString = req.getQueryString();
 	if (!queryString.empty())
 	{
 		//here we need the envp in order to modify it and add the query string
+		;
 	}
 
 	int pipes[2];
@@ -136,7 +156,8 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 	if (pipe(pipes) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
-		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		//return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		return (NOT_IMPLEMENTED);
 	}
 
 	int id = fork();
@@ -172,8 +193,11 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 		waitpid(id, &status, WNOHANG);
 		if (WIFEXITED(status))
 		{
-			if (WEXITSTATUS(status) != 0)	
-				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
+			if (WEXITSTATUS(status) != 0)
+			{
+				//response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
+				response = NOT_IMPLEMENTED;
+			}
 			else
 			{
 				char buffer[BUFFER_SIZE];
@@ -186,7 +210,8 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 					if (readed > 0)
 					{
 						close(pipes[0]);
-						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
+						//response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
+						response = NOT_IMPLEMENTED;
 					}
 					else
 						content += std::string(buffer);
@@ -204,7 +229,8 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 		else //if the child procces has not exited
 		{
 			kill(id, SIGKILL);
-			response = ResponseGenerator::errorResponse(TIMEOUT, currentServ);
+			//response = ResponseGenerator::errorResponse(TIMEOUT, currentServ);
+			response = NOT_IMPLEMENTED;
 		}
 		return (response);
 	}

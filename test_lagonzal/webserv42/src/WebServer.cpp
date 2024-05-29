@@ -52,17 +52,23 @@ bool	WebServer::initializeSockets(void)
 {
 	std::map<std::string, Parser::Server>::const_iterator server_iter;
 	int yes = 1;
-
+	debug("initializing sockets");
 	for (server_iter = config.getServers().begin(); server_iter != config.getServers().end(); ++server_iter)
 	{
 		const Parser::Server &serv = server_iter->second;
 		int port = Utils::obtainIntFromStr(serv.port);
+		debug("Initializing port " + serv.port);
 		serverSockets.push_back(socket(AF_INET, SOCK_STREAM, 0));
 		if (serverSockets.back() == -1)
 		{
 			std::cerr << "Error creating a socket" << std::endl;
 			return (1);
 		}
+		pollfd newPollFD;
+		newPollFD.fd = serverSockets.back();
+		newPollFD.events = POLLIN;
+		pollFDS.push_back(newPollFD);
+	
 		if (setsockopt(serverSockets.back(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes)) == -1)
 		{
 			std::cerr << "Error seting socket options" << std::endl;
@@ -85,6 +91,7 @@ bool	WebServer::initializeSockets(void)
 			std::cerr << "Listen failed" << std::endl;
 			return (1);
 		}
+		
 	}
 	return (0);
 }
@@ -144,6 +151,10 @@ void	WebServer::serverLoop(void)
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
+		else
+		{
+			std::cout << "No event detected" << std::endl;
+		}
 	} // while (!stopSignal)
 }
 
@@ -177,7 +188,20 @@ int WebServer::readRequest(int cliVecPos)
 const char	*WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
-	Parser::Location currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
+
+	debug(RED);
+	debug("Gonna build reponse in Webserver::buildResponse");
+	debug(RESET);
+
+	try
+	{
+		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
+	}
+	catch(const std::runtime_error& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 
 	int i = 0;
 	for (; i < 3; i++)
@@ -192,8 +216,8 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	switch(i)
 	{
 		case(GET):
-			std::cout << "Get Resonse" << std::endl;
-			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
+			std::cout << "Get Response" << std::endl;
+			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), /*config.getServer(req.getPort()),*/ envp);
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;

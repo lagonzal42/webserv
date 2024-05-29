@@ -17,7 +17,7 @@ class Utils
 			Utils & operator=( Utils const & src );
 	// --- Getter functions --- //
 			static std::string	extractNumbers(std::string const & str);
-
+			static int	obtainIntFromStr(std::string const & num);
 
 	// --- Getter functions --- //
 

@@ -20,6 +20,10 @@
 #include <algorithm>
 #include <iostream>
 #include "Parser.hpp"
+#include "Utils.hpp"
+#include <cstdlib>
+#include <cstring>
+#include "ResponseGenerator_GET.hpp"
 
 #define GET 0
 #define POST 1
@@ -41,7 +45,7 @@ class WebServer
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
 		void	startSignals(void);
-		void signalHandle(void);
+		void signalHandle(int);
 	
 	public:
 
@@ -57,7 +61,7 @@ class WebServer
 
 		bool	initializeSockets();
 
-		bool	initializeEnvp();
+		void	initializeEnvp(char **originalEnvp);
 
 		//This will be the "infinite loop in wich poll is executed"
 		void	serverLoop();
@@ -68,13 +72,13 @@ class WebServer
 
 		void	processRequest(int vectorPos);
 
-		char	*buildResponse(int cliVecPos);
+		const char	*buildResponse(int cliVecPos);
 
-		void	sendResponse(int vectorPos /*, Respose*/);
+		void	sendResponse(int vectorPos, const char *response);
 
 		void	cleanVectors(int vectorPos);
 
-
+		void	serverClose(void);
 
 		void	setStopSignal(bool stop);
 	

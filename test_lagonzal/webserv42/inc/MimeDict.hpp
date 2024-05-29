@@ -1,5 +1,6 @@
 
 #include <map>
+#include <string>
 
 /**
  * @brief	This class is a singleton.  
@@ -32,6 +33,6 @@ class MimeDict
 		static Deleter _deleter;
 		
 		MimeDict(void);
-		MimeDict(const MimeDict&) = delete;
+		MimeDict(const MimeDict&);
 	
 };

@@ -35,3 +35,15 @@ std::string	Utils::extractNumbers(std::string const & str)
 }
 // --- Member functions --- //
 
+int	obtainIntFromStr(std::string const & num)
+{
+	int	ret = 0;
+	std::istringstream iss(num);
+	if (!(iss >> ret))
+	{
+		throw std::runtime_error("Failed to convert string to size_t in obtainSizeFromStr()");
+		// std::cerr << "convert error." << std::endl;
+		// return 1; //put exception, end will never get return when it returns error
+	}
+	return ret;
+}

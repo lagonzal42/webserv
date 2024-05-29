@@ -12,8 +12,8 @@ int main(int argc, char **argv, char **envp)
     else
         configFile = argv[1];
     
-    if (webserv.initialize())
+    if (webserv.initialize(envp, configFile))
         return (1);
     webserv.serverLoop();
-
+    webserv.serverClose();
 }

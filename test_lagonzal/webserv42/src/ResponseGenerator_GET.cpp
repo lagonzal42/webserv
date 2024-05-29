@@ -41,47 +41,47 @@
 
 /*=============================*/
 
-const char	*ResponseGenerator::generateGetResponse(Parser::Location& currentLoc, Request& req)
+const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << "Method not allowed" << std::endl;
-		//return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, )); //Here I need the full server config, not only the location in order to have access to the error pages
+		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
-	else if (currentLoc.name == "redir")
-	{
-		std::cout << "Processing Redirection GET request" << std::endl;
-		//return (ResponseGenerator::getRedirResponse(??));
-	}
+	// else if (currentLoc.name == "redir")
+	// {
+	// 	std::cout << "Processing Redirection GET request" << std::endl;
+	// 	//return (ResponseGenerator::getRedirResponse(??));
+	// }
 	else if (currentLoc.name == "cgi")
 	{
 		std::cout << "Processing CGI GET request" << std::endl;
-		//return (ResponseGenerator::getCgiResponse(req));
+		return (ResponseGenerator::getCgiResponse(req, envp, currentServ));
 	}
 	else if (currentLoc.autoindex && !req.getPath().empty() && req.getPath()[req.getPath().length() - 1] == '/')
 	{
 		std::cout << "Processing autoindex GET request" << std::endl;
-		//return (ResponseGenerator::getAutoindexResponse(req));
+		return (ResponseGenerator::getAutoindexResponse(req, currentServ));
 	}
 	else
 	{
 		std::cout << "Processing file GET request" << std::endl;
-		//return (ResponseGenerator::getFileResponse(req));
+		return (ResponseGenerator::getFileResponse(req, currentServ));
 	}
 }
 
-const char	*ResponseGenerator::getFileResponse(Request& req)
+const char	*ResponseGenerator::getFileResponse(Request& req,  const Parser::Server& currentServ)
 {
 	std::string response;
 	std::stringstream responseStatus;
 	std::string filePath = "." + req.getPath();
 
 	responseStatus << 200 << " OK";
-	std::ifstream file(filePath, std::ios::in | std::ios::binary);
+	std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open" << filePath << std::endl;
-		return (ResponseGenerator::errorResponse(NOT_FOUND));
+		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
 	}
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
@@ -93,7 +93,7 @@ const char	*ResponseGenerator::getFileResponse(Request& req)
 	return ((response.c_str()));
 }
 
-const char	*ResponseGenerator::getAutoindexResponse(Request& req)
+const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::Server& currentServ)
 {
 	std::string response, responseHead, responseBody;
 	std::string dirPath = "." + req.getPath();
@@ -103,7 +103,7 @@ const char	*ResponseGenerator::getAutoindexResponse(Request& req)
 	
 
 	if (directory == NULL)
-		return (ResponseGenerator::errorResponse(FORBIDEN));
+		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
 	responseBody += "<html><head><title>Index of " + dirPath + "</title></head>";
 	responseBody += "<body><h1>Index of " + dirPath + "</h1>";
@@ -123,7 +123,7 @@ const char	*ResponseGenerator::getAutoindexResponse(Request& req)
 	return (response.c_str());
 }
 
-const char	*ResponseGenerator::getCgiResponse(Request& req)
+const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>& envp, const Parser::Server& currentServ)
 {
 	std::string queryString = req.getQueryString();
 	if (!queryString.empty())
@@ -136,7 +136,7 @@ const char	*ResponseGenerator::getCgiResponse(Request& req)
 	if (pipe(pipes) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
-		return (ResponseGenerator::errorResponse(500));
+		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
 
 	int id = fork();
@@ -149,14 +149,16 @@ const char	*ResponseGenerator::getCgiResponse(Request& req)
 		std::string fileName = "." + req.getPath();
 		char *filepath[] = {const_cast<char *>(fileName.c_str()), NULL};
 
-		if (execve(filepath[0], filepath, ) == -1)
+		if (execve(filepath[0], filepath, &envp[0]) == -1)
 		{
 			std::cerr << "Execve failed" << std::endl;
 			exit(1);
 		}
+		return (NULL);
 	}
 	else
 	{
+		const char *response;
 		int status;
 		close(pipes[1]);
 
@@ -171,7 +173,7 @@ const char	*ResponseGenerator::getCgiResponse(Request& req)
 		if (WIFEXITED(status))
 		{
 			if (WEXITSTATUS(status) != 0)	
-				return (ResponseGenerator::errorResponse(404));
+				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
 			else
 			{
 				char buffer[BUFFER_SIZE];
@@ -184,7 +186,7 @@ const char	*ResponseGenerator::getCgiResponse(Request& req)
 					if (readed > 0)
 					{
 						close(pipes[0]);
-						return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR));
+						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 					}
 					else
 						content += std::string(buffer);
@@ -195,14 +197,15 @@ const char	*ResponseGenerator::getCgiResponse(Request& req)
 				std::stringstream ss;
 				ss << content.size();
 
-				std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				return (response.c_str());
+				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+				response = responseStr.c_str();
 			}
 		}
 		else //if the child procces has not exited
 		{
-			kill(id);
-			return (ResponseGenerator::errorResponse(408));
+			kill(id, SIGKILL);
+			response = ResponseGenerator::errorResponse(TIMEOUT, currentServ);
 		}
+		return (response);
 	}
 }

@@ -16,10 +16,15 @@
 # define METHOD_NOT_IMPLEMENTED	501
 #endif
 
+WebServer::WebServer()
+{}
+WebServer::~WebServer()
+{}
+
 bool WebServer::initialize(char **envp, std::string configFile)
 {
 
-	startSignals();
+	//startSignals();
 
 	try
 	{
@@ -28,19 +33,76 @@ bool WebServer::initialize(char **envp, std::string configFile)
 	catch(const std::exception& e)
 	{
 		std::cerr << "Parser exception: " <<e.what() << '\n';
+		return (1);
 	}
 
-	
-	
+	if (initializeSockets())
+		return (1);
+	initializeEnvp(envp);
+	return (0);
 }
 
-void	WebServer::startSignals(void)
+// void	WebServer::startSignals(void)
+// {
+// 	signal(SIGINT, (void *)signalHandle);
+// 	signal(SIGQUIT, this->signalHandle);
+// }
+
+bool	WebServer::initializeSockets(void)
 {
-	signal(SIGINT, this->signalHandle);
-	signal(SIGQUIT, this->signalHandle);
+	std::map<std::string, Parser::Server>::const_iterator server_iter;
+	int yes = 1;
+
+	for (server_iter = config.getServers().begin(); server_iter != config.getServers().end(); ++server_iter)
+	{
+		const Parser::Server &serv = server_iter->second;
+		int port = Utils::obtainIntFromStr(serv.port);
+		serverSockets.push_back(socket(AF_INET, SOCK_STREAM, 0));
+		if (serverSockets.back() == -1)
+		{
+			std::cerr << "Error creating a socket" << std::endl;
+			return (1);
+		}
+		if (setsockopt(serverSockets.back(), SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes)) == -1)
+		{
+			std::cerr << "Error seting socket options" << std::endl;
+			return (1);
+		}
+
+		struct sockaddr_in server_addr;
+		memset(&server_addr, 0, sizeof(server_addr));
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_addr.s_addr = INADDR_ANY;
+		server_addr.sin_port = htons(port);
+
+		if (bind(serverSockets.back(), reinterpret_cast<struct sockaddr*>(&server_addr), sizeof(server_addr)) < 0)
+		{
+			std::cerr << "Bind failed" << std::endl;
+			return (1);
+		}
+		if (listen(serverSockets.back(), 5) < 0)
+		{
+			std::cerr << "Listen failed" << std::endl;
+			return (1);
+		}
+	}
+	return (0);
 }
 
-void WebServer::signalHandle(void)
+void	WebServer::initializeEnvp(char **originalEnvp)
+{
+	int i = 0;
+
+	while (originalEnvp[i])
+	{
+		envp.push_back(originalEnvp[i]);
+		i++;
+	}
+	envp.push_back(const_cast<char *>(std::string("QUERY_STRING=").c_str()));
+	envp.push_back(NULL);
+}
+
+void WebServer::signalHandle(int)
 {
 	stopSignal = true;
 }
@@ -76,9 +138,9 @@ void	WebServer::serverLoop(void)
 					//BUILD RESPONSE HERE
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
-					char *response = buildResponse(cliVectorPos, servSockPos - serverSockets.begin());
+					const char *response = buildResponse(cliVectorPos);
 					sendResponse(pollFDS[i].fd , response);
-					cleanVectors(vectorPos);
+					cleanVectors(cliVectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -91,22 +153,28 @@ void	WebServer::acceptConnection(int vectorPos)
 	socklen_t			clientAddrLen = sizeof(clientAddr);
 
 	int	clientSocket = accept(serverSockets[vectorPos], (struct sockaddr *)&clientAddr, &clientAddrLen);
-	pollFDS.push_back({clientSocket, POLLIN, 0});
+	
+	pollfd newPollFD;
+	newPollFD.fd = clientSocket;
+	newPollFD.events = POLLIN;
+	pollFDS.push_back(newPollFD);
+	
 	clientSockets.push_back(clientSocket);
 	requests.push_back(Request());
 }
 
 int WebServer::readRequest(int cliVecPos)
 {
-	int result = requests[cliVecPos].readRequest(clientSockets[cliVecPos]);
-	if (result)
+	if (requests[cliVecPos].readRequest(clientSockets[cliVecPos]))
 	{
 		std::cout << "Failed reading the request from the client socket" << std::endl;
 		cleanVectors(cliVecPos);
+		return(1);
 	}
+	return(0);
 }
 
-char	*WebServer::buildResponse(int cliVecPos)
+const char	*WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
 	Parser::Location currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
@@ -119,12 +187,13 @@ char	*WebServer::buildResponse(int cliVecPos)
 	}
 
 	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
-	char *response;
+	const char *response;
+	Request& req = requests[cliVecPos];
 	switch(i)
 	{
 		case(GET):
 			std::cout << "Get Resonse" << std::endl;
-			response = ResponseGenerator::generateGetResponse(requests[i], currentLoc, config.getServer(requests[cliVecPos].getPort(), requests[cliVecPos].getHost()));
+			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;
@@ -134,7 +203,7 @@ char	*WebServer::buildResponse(int cliVecPos)
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;
-			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED);
+			//response = ResponseGenerator::errorResponse(config, METHOD_NOT_IMPLEMENTED);
 			break;
 	}
 	return(response);
@@ -142,10 +211,11 @@ char	*WebServer::buildResponse(int cliVecPos)
 
 
 
-// void WebServer::sendResponse() //still implementing
-// {
-	
-// }
+void WebServer::sendResponse(int vectorPos, const char* response) //still implementing
+{
+	if (send(clientSockets[vectorPos], response, std::strlen(response), 0) != -1)
+		std::cerr << "Send failed" << std::endl;
+}
 
 
 void	WebServer::cleanVectors(int vectorPos)
@@ -159,4 +229,14 @@ void	WebServer::cleanVectors(int vectorPos)
 	clientSockets.erase(clientSockets.begin() + vectorPos);
 	requests.erase(requests.begin() + vectorPos);
 	std::cout << "Closed connection with client" << std::endl;
+}
+
+void	WebServer::serverClose(void)
+{
+	for (std::vector<int>::iterator it = clientSockets.begin(); it != clientSockets.end(); it++)
+		close(*it);
+	for (std::vector<int>::iterator it = serverSockets.begin(); it != serverSockets.end(); it++)
+		close(*it);
+	
+	delete	MimeDict::getMimeDict();
 }

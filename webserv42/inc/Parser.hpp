@@ -44,6 +44,7 @@ class Parser
 				std::vector<Location> locations; //location /
 				std::string	host; 
 				std::string	port; //listen
+				std::map<int, std::string> error_pages; //error_page int: error code, std::string path
 				// Default constructor to initialize
 				Server() : name(""), root(""), host(""), port("") {}
 			};
@@ -53,11 +54,13 @@ class Parser
 			Parser( Parser const & src );
 			Parser & operator=( Parser const & src );
 			bool	parse( std::string const & conf );
+	// --- Getter functions --- //
 			std::map<std::string, Server>	const & getServers( void ) const;
 			Server	const getServer( std::string const & port ) const;
 			std::map<std::string, Server>	const & getDefServer( void ) const;
 			std::string	const & getConfFile( void ) const;
 			Location const getCurLocation( std::string const & path, std::string const & port ) const;
+	// --- Getter functions --- //
 
 
 	private:

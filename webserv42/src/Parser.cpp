@@ -83,20 +83,19 @@ Parser::Location	Parser::processLocation( std::string const & block )
 			{
 				ret = *it;
 				// --- DELETE --- //
-				std::cout << GREEN "I found it! " << it->name << std::endl;
-				std::cout << RESET << block << std::endl;
-				std::cout << "ret.name: " << ret.name << std::endl;
-				std::cout << "ret.root: " << ret.root << std::endl;
-				std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
-				std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
-				std::cout << "ret.index: " << ret.index << std::endl;
-				std::cout << "ret.methods: ";
-				for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
-					std::cout << *it << " ";
-				std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
-				std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
+					// std::cout << GREEN "I found it! " << it->name << std::endl;
+					// std::cout << RESET << block << std::endl;
+					// std::cout << "ret.name: " << ret.name << std::endl;
+					// std::cout << "ret.root: " << ret.root << std::endl;
+					// std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
+					// std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
+					// std::cout << "ret.index: " << ret.index << std::endl;
+					// std::cout << "ret.methods: ";
+					// for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
+					// 	std::cout << *it << " ";
+					// std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
+					// std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
 				// --- DELETE --- //
-
 				break ;
 			} // block.find(it->name) != std::string::npos
 		} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
@@ -107,16 +106,6 @@ Parser::Location	Parser::processLocation( std::string const & block )
 	ret.autoindex = false;
 	ret.max_body_size = 0;
 
-	// std::string	name;
-	// std::string root; //root
-	// std::string	index; //index
-	// // std::string methods;
-	// std::vector<std::string> methods; //method GET, POST OR DELETE
-	// std::string	cgi_path; //cgi_path
-	// std::string	upload_path; //upload_path
-	// std::string	redirect;
-	// bool		autoindex; // autoindex
-	// size_t		max_body_size; //max body size
 	while (std::getline(iss, line))
 	{
 		std::string num;
@@ -204,6 +193,7 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 		ret.name = def.name;
 		ret.port = def.port;
 		ret.root = def.root;
+		ret.error_pages = def.error_pages;
 	}
 // --- DELETE --- //
 	// std::cout << CYAN "TEST PRINT SERVER: \n";
@@ -213,13 +203,6 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 	// std::cout << "root: " << ret.root << "\n" RESET << std::endl;
 // --- DELETE --- //
 
-
-
-	// if (tempServer.port.empty() && !this->_serversDefault.empty())
-	// {
-	// 	// put the default information
-	// 	tempServer.port = this->getDefServer().begin()->second.port;
-	// }
 	if (!tempServer.host.empty())
 		ret.host = tempServer.host;
 	if (!tempServer.name.empty())
@@ -228,11 +211,9 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 		ret.port = tempServer.port;
 	if (!tempServer.root.empty())
 		ret.root = tempServer.root;
+	if (!tempServer.error_pages.empty())
+		ret.error_pages = tempServer.error_pages;
 	ret.locations = tempServer.locations;
-
-
-
-
 
 	//to check if the locations incudes things that should not be empty
 	if (!this->_serversDefault.empty())
@@ -252,7 +233,7 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 			if (retIt != ret.locations.end())
 				continue ;
 			ret.locations.push_back(*defIt);
-			std::cout << BLUE "I added things that wasn't there! "  RESET << std::endl;
+			// std::cout << BLUE "I added things that wasn't there! "  RESET << std::endl;
 		}
 	} // !this->_serversDefault.empty()
 // --- DELETE --- //
@@ -264,17 +245,6 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 // --- DELETE --- //
 	return ret;
 }
-
-// std::string	Parser::extractNumbers(std::string const & str)
-// {
-// 	std::string ret;
-// 	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
-// 	{
-// 		if (std::isdigit(*it))
-// 			ret.push_back(*it);
-// 	}
-// 	return ret;
-// }
 
 //It's a simple function, but could be useful?
 std::string	Parser::extractWord(std::string const & str, std::string const & key)
@@ -309,12 +279,18 @@ std::string	Parser::extractWord(std::string const & str, std::string const & key
 
 void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & line)
 {
-	std::string	info[3] = {"listen", "server_name", "root"};
+	std::string	info[4] = {"listen", "server_name", "root", "error_page"};
 	int	i = 0;
 	std::string temp = line;
 	std::replace(temp.begin(), temp.end(), '\r', ' ');
 
-	for (i = 0; i < 3; i++)
+// This is not a best practice, make it better---
+			std::istringstream line_ss(temp);
+			std::string error_page;
+			std::string path;
+			int	error_code;
+//
+	for (i = 0; i < 4; i++)
 	{
 		if (temp.find(info[i]) != std::string::npos)
 			break ;
@@ -326,16 +302,17 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 			tempServer->name = tempServer->port;
 			break ;
 	case 1:
-	//as I changed the map string to only port number, also it's changed
 			tempServer->host = extractWord(temp, "server_name");
-			// if (tempServer->name != "")
-			// 	tempServer->name = tempServer->host + ":" + tempServer->port;
-			// else
-			// 	tempServer->name = tempServer->host;
 			break ;
 	case 2:
 			tempServer->root = extractWord(temp, "root");
 			break ;
+	case 3:
+			line_ss >> error_page >> error_code >> path;
+			// std::cout << "error_page: " << error_page << "\nerror_code: " << error_code << "\npath: " << path << std::endl;
+			tempServer->error_pages[error_code] = path;
+			break ;
+
 	default: throw std::runtime_error("Unknown block type encountered: " + temp);
 		// std::cout << RED << temp << ": It's not in server block. I will put an exception" RESET << std::endl;
 		break ;
@@ -348,6 +325,7 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 	/*     */
 	/*******/
 
+// If you put something not GET, POST, nor DELETE, parse will get error and will not run the server
 std::vector<std::string> Parser::obtainMethod(std::string const & line)
 {
 	std::vector<std::string> ret;
@@ -388,15 +366,6 @@ std::vector<std::string> Parser::obtainMethod(std::string const & line)
 			throw std::runtime_error("Unknown method encountered: " + *it);
 	}
 	return ret;
-	// std::vector<std::string>	ret;
-	// std::string	methods[3] = {"GET", "POST", "DELETE"};
-	// int	i = 0;
-	// for (i = 0; i < 3; i++)
-	// {
-	// 	if (line.find(methods[i]) != std::string::npos)
-	// 		ret.push_back(methods[i]);
-	// }
-	// return ret;
 }
 
 
@@ -436,16 +405,6 @@ void	Parser::parseByLine(std::string const & line)
 		// Check if we have reached the end of the block
 		if (line.find('}') != std::string::npos)
 		{
-		//=== TEST ===// I can remove this when I don't print
-			// std::replace(serverBlock.begin(), serverBlock.end(), '\r', '\n');
-		//=== TEST ===//
-		//=== TEST ===//
-			// std::cout << YELLOW << std::endl;
-			// std::cout << "tempServer.name: " << tempServer.name << std::endl;
-			// std::cout << "tempServer.root: " << tempServer.root << std::endl;
-			// std::cout << "tempServer.host: " << tempServer.host << std::endl;
-			// std::cout << "tempServer.port: " << tempServer.port << RESET << std::endl;
-		//=== TEST ===//
 			// Now 'serverBlock' contains the entire block, process it here
 			// Pass tempServer to obtain infos that has, then make the new one to put to _servers
 			Server newServer = processServer(tempServer);
@@ -488,13 +447,11 @@ bool	Parser::parse( std::string const & conf )
 	{
 		throw std::runtime_error("Failed to open config file: " + conf);
 		// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
-		// return false;
 	}
 	std::string	line;
 	while (std::getline(configFile, line))
 	{
-		//parse line
-		// std::cout << "\n>>> Input line: " GREEN <<line << RESET "\n";
+		// parse line
 		parseByLine(line);
 	}
 	return true;
@@ -512,7 +469,7 @@ std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 Parser::Server	const Parser::getServer( std::string const & port ) const
 {
 	Parser::Server ret;
-	std::cout << BLUE << "Im in the getServer!" RESET << std::endl;
+	std::cout << BLUE << "Im in the getServer! " RESET;
 	std::cout << "port: " << port << std::endl;
 	std::map<std::string, Parser::Server> servers = this->getServers();
 
@@ -520,7 +477,7 @@ Parser::Server	const Parser::getServer( std::string const & port ) const
 	if (server_iter == servers.end())
 	{
 		// No server found for the given port
-		std::cout << RED << "Im leaving from the getServer!" RESET << std::endl;
+		std::cout << RED << "Any server detected from getServer!" RESET << std::endl;
 		return ret;
 	}
 	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
@@ -545,8 +502,8 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 {
 	//I think I will recieve path ---  "/upload/img"   port ---  "8080"
 	Parser::Location ret;
-	std::cout << BLUE << "Im in the getCurLocation!" RESET << std::endl;
-	std::cout << "path: " << path << "\nport: " << port << std::endl;
+	std::cout << BLUE << "Im in the getCurLocation! " RESET;
+	std::cout << "path: " << path << " port: " << port << std::endl;
 
 	const Parser::Server &curServer = this->getServer(port);
 
@@ -613,6 +570,13 @@ std::ostream &operator<<(std::ostream &os, const Parser &obj)
 		os << std::setw(15) << "host: " << server.host << "\n";
 		os << std::setw(15) << "port: " << server.port << "\n";
 		os << std::setw(15) << "root: " << server.root << "\n";
+		os << std::setw(15) << "error_pages: " << "\n";
+		std::map<int, std::string>::const_iterator error_it;
+		for (error_it = server.error_pages.begin(); error_it != server.error_pages.end(); ++error_it)
+		{
+			os << std::setw(18) << "<" << error_it->first << ">" << error_it->second << "\n";
+		}
+		
 		os << std::setw(15) << "locations: " << "\n   ";
 		os << std::setfill('-') << std::setw(45) << "\n";
 

@@ -6,9 +6,10 @@
 # include <iostream>
 # include <string>
 # include <sstream>
+# include "colors.h"
 
 
-class ResponseGenerator
+class ResponseGeneratorDELETE
 {
 	public:
 			ResponseGeneratorDELETE( void );
@@ -17,7 +18,7 @@ class ResponseGenerator
 			ResponseGeneratorDELETE & operator=( ResponseGeneratorDELETE const & src );
 	// --- Getter functions --- //
 
-			std::string generateDeleteResponse(const std::string &fullPath);
+			static std::string generateDeleteResponse(const std::string &fullPath);
 	// --- Getter functions --- //
 
 

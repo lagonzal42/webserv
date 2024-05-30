@@ -1,20 +1,22 @@
 #include "ResponseGenerator_DELETE.hpp"
+#include <cstdio>   // for remove
 
-ResponseGeneratorDELETE( void ){}
-~ResponseGeneratorDELETE( void ){}
-ResponseGeneratorDELETE( ResponseGeneratorDELETE const & src )
+
+ResponseGeneratorDELETE::ResponseGeneratorDELETE( void ){}
+ResponseGeneratorDELETE::~ResponseGeneratorDELETE( void ){}
+ResponseGeneratorDELETE::ResponseGeneratorDELETE( ResponseGeneratorDELETE const & src )
 {
 	if (this != &src)
 	{
 		this->operator=(src);
 	}
 }
-ResponseGeneratorDELETE & operator=( ResponseGeneratorDELETE const & src )
+ResponseGeneratorDELETE & ResponseGeneratorDELETE::operator=( ResponseGeneratorDELETE const & src )
 {
 	if (this != &src)
 	{
-		this->~Utils();
-		new(this) Utils(src);
+		this->~ResponseGeneratorDELETE();
+		new(this) ResponseGeneratorDELETE(src);
 	}
 	return *this;
 }

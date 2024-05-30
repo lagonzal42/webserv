@@ -196,12 +196,44 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 	// std::cout << block << RESET << std::endl;
 //=== TEST ===//
 	Server ret;
-	if (tempServer.port.empty() && !this->_serversDefault.empty())
+	if (!this->_serversDefault.empty())
 	{
-		tempServer.port = this->getDefServer().begin()->second.port;
+		Server def = this->getDefServer().begin()->second;
+		ret.host = def.host;
+		ret.locations = def.locations;
+		ret.name = def.name;
+		ret.port = def.port;
+		ret.root = def.root;
 	}
-	ret.host = tempServer.host;
+// --- DELETE --- //
+	// std::cout << CYAN "TEST PRINT SERVER: \n";
+	// std::cout << "host: " << ret.host << std::endl;
+	// std::cout << "name: " << ret.name << std::endl;
+	// std::cout << "port: " << ret.port << std::endl;
+	// std::cout << "root: " << ret.root << "\n" RESET << std::endl;
+// --- DELETE --- //
+
+
+
+	// if (tempServer.port.empty() && !this->_serversDefault.empty())
+	// {
+	// 	// put the default information
+	// 	tempServer.port = this->getDefServer().begin()->second.port;
+	// }
+	if (!tempServer.host.empty())
+		ret.host = tempServer.host;
+	if (!tempServer.name.empty())
+		ret.name = tempServer.name;
+	if (!tempServer.port.empty())
+		ret.port = tempServer.port;
+	if (!tempServer.root.empty())
+		ret.root = tempServer.root;
 	ret.locations = tempServer.locations;
+
+
+
+
+
 	//to check if the locations incudes things that should not be empty
 	if (!this->_serversDefault.empty())
 	{
@@ -223,9 +255,13 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 			std::cout << BLUE "I added things that wasn't there! "  RESET << std::endl;
 		}
 	} // !this->_serversDefault.empty()
-	ret.name = tempServer.name;
-	ret.port = tempServer.port;
-	ret.root = tempServer.root;
+// --- DELETE --- //
+	// std::cout << YELLOW "TEST PRINT SERVER: \n";
+	// std::cout << "host: " << ret.host << std::endl;
+	// std::cout << "name: " << ret.name << std::endl;
+	// std::cout << "port: " << ret.port << std::endl;
+	// std::cout << "root: " << ret.root << "\n" RESET << std::endl;
+// --- DELETE --- //
 	return ret;
 }
 
@@ -464,6 +500,9 @@ bool	Parser::parse( std::string const & conf )
 	return true;
 }
 
+
+
+
 	// --- Getter functions --- //
 std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 {
@@ -519,6 +558,7 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		if (location.name == path)
 		{
 			std::cout << YELLOW "I found " << path << "!!!!" RESET << std::endl;
+			std::cout << "location: " << location.name << std::endl;
 			return location;
 		}
 	}
@@ -536,18 +576,20 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 			{
 				longestMatchLength = matchLength;
 				bestMatch = &location;
+				std::cout << "bestMatch: " << bestMatch->name << std::endl;
 			}
 		}
 	}
-	if (!bestMatch)
+	if (bestMatch)
 	{
+		std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
+		return *bestMatch;
 		// instead of return ret, I want to put exception, or NULL
 		// return ret;
-		throw std::runtime_error("the root has not been encontered");
 	}
+
 	// return ret;
-	std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
-	return *bestMatch;
+	throw std::runtime_error("the root has not been encontered");
 }
 
 

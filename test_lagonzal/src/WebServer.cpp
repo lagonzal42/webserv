@@ -27,6 +27,21 @@ void	WebServer::startSignals(void)
 	signal(SIGQUIT, this->signalHandle);
 }
 
+bool	WebServer::initialize(char **envp, std::string configFile)
+{
+	try
+	{
+		config.parse(configFile);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << "Parser exception" << e.what() << '\n';
+		return (1);
+	}
+	
+	
+}
+
 void	WebServer::serverLoop(void)
 {
 	while (!stopSignal)

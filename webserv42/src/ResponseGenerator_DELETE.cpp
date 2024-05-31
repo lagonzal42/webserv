@@ -1,5 +1,7 @@
 #include "ResponseGenerator_DELETE.hpp"
 #include <cstdio>   // for remove
+#include <algorithm>
+
 
 
 ResponseGeneratorDELETE::ResponseGeneratorDELETE( void ){}
@@ -21,13 +23,26 @@ ResponseGeneratorDELETE & ResponseGeneratorDELETE::operator=( ResponseGeneratorD
 	return *this;
 }
 
-const char	* ResponseGeneratorDELETE::generateDeleteResponse(const std::string &fullPath)
+// const char	* ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const std::string &fullPath)
+std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const std::string &fullPath)
 {
 	std::ostringstream oss;
 	std::string response;
 	std::string body;
 
-	if (remove(fullPath.c_str()) == 0) {
+	std::cout << "req method: " << req.getMethod() << std::endl;
+	std::cout << "location method: " << std::endl;
+	for (std::vector<std::string>::const_iterator it = currentLoc.methods.begin(); it != currentLoc.methods.end(); ++it)
+		std::cout << *it << " ";
+	std::cout << std::endl;
+
+	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
+	{
+		std::cerr << "Method not allowed" << std::endl;
+		return NULL;//(ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
+	}
+	if (remove(fullPath.c_str()) == 0)
+	{
 		std::cout << CYAN "removed successfully" RESET << std::endl;
 		body =
 			"<html>"
@@ -38,7 +53,9 @@ const char	* ResponseGeneratorDELETE::generateDeleteResponse(const std::string &
 			<< "Content-Type: text/html\r\n"
 			<< "Content-Length: " << body.size() << "\r\n"
 			<< "\r\n" << body;
-	} else {
+	}
+	else
+	{
 		std::cout << RED "failed to remove file" RESET << std::endl;
 		body =
 			"<html>"
@@ -50,7 +67,7 @@ const char	* ResponseGeneratorDELETE::generateDeleteResponse(const std::string &
 			<< "Content-Length: " << body.size() << "\r\n"
 			<< "\r\n" << body;
 	}
-
 	response = oss.str();
-	return response.c_str();
+	return response;
+	// return response.c_str();
 }

@@ -21,7 +21,7 @@ ResponseGeneratorDELETE & ResponseGeneratorDELETE::operator=( ResponseGeneratorD
 	return *this;
 }
 
-std::string ResponseGeneratorDELETE::generateDeleteResponse(const std::string &fullPath)
+const char	* ResponseGeneratorDELETE::generateDeleteResponse(const std::string &fullPath)
 {
 	std::ostringstream oss;
 	std::string response;
@@ -52,5 +52,5 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(const std::string &f
 	}
 
 	response = oss.str();
-	return response;
+	return response.c_str();
 }

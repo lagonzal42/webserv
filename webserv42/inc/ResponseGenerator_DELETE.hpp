@@ -18,7 +18,7 @@ class ResponseGeneratorDELETE
 			ResponseGeneratorDELETE & operator=( ResponseGeneratorDELETE const & src );
 	// --- Getter functions --- //
 
-			static std::string generateDeleteResponse(const std::string &fullPath);
+			static const char	* generateDeleteResponse(const std::string &fullPath);
 	// --- Getter functions --- //
 
 

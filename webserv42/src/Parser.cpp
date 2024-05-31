@@ -17,13 +17,13 @@
 
 Parser::Parser( void ): _conf_file("configurations/webserv.conf")
 {
-	std::cout << _conf_file << ": Called default constructor!" << std::endl;
+	// std::cout << _conf_file << ": Called default constructor!" << std::endl;
 	Parser::parse(_conf_file);//error check
-	std::cout << _conf_file << ": Called initialization parser!" << std::endl;
+	// std::cout << _conf_file << ": Called initialization parser!" << std::endl;
 }
 Parser::~Parser( void )
 {
-	std::cout << _conf_file << ": Called destructor, bye!" << std::endl;
+	// std::cout << _conf_file << ": Called destructor, bye!" << std::endl;
 }
 Parser::Parser( Parser const & src )
 {
@@ -457,6 +457,19 @@ bool	Parser::parse( std::string const & conf )
 	return true;
 }
 
+std::string	Parser::getParentDirectory( const std::string & path ) const
+{
+	// Find the last occurrence of '/'
+	std::string::size_type pos = path.find_last_of('/');
+
+	// If '/' is found and it's not the first character, return the substring up to the last '/'
+	if (pos != std::string::npos && pos > 0) {
+		return path.substr(0, pos + 1);
+	}
+
+	// If the path is just a root directory or has no slashes, return "/"
+	return "/";
+}
 
 
 
@@ -469,8 +482,8 @@ std::map<std::string, Parser::Server>	const & Parser::getServers( void ) const
 Parser::Server	const Parser::getServer( std::string const & port ) const
 {
 	Parser::Server ret;
-	std::cout << BLUE << "Im in the getServer! " RESET;
-	std::cout << "port: " << port << std::endl;
+	// std::cout << YELLOW << "Im in the getServer! " RESET;
+	// std::cout << "port: " << port << std::endl;
 	std::map<std::string, Parser::Server> servers = this->getServers();
 
 	std::map<std::string, Parser::Server>::const_iterator server_iter = servers.find(port);
@@ -480,7 +493,7 @@ Parser::Server	const Parser::getServer( std::string const & port ) const
 		std::cout << RED << "Any server detected from getServer!" RESET << std::endl;
 		return ret;
 	}
-	std::cout << YELLOW "I found " << port << "!!!!" RESET << std::endl;
+	std::cout << YELLOW "Detected Server: port: \"" << port << "\" in getServer" RESET << std::endl;
 	return server_iter->second;
 }
 
@@ -500,52 +513,54 @@ std::string	const & Parser::getConfFile( void ) const
 */
 Parser::Location const Parser::getCurLocation( std::string const & path, std::string const & port ) const
 {
-	//I think I will recieve path ---  "/upload/img"   port ---  "8080"
-	Parser::Location ret;
-	std::cout << BLUE << "Im in the getCurLocation! " RESET;
-	std::cout << "path: " << path << " port: " << port << std::endl;
-
+	// std::cout << BLUE << "Im in the getCurLocation! " RESET;
+	// std::cout << "path: " << path << " port: " << port << std::endl;
+	std::string parentPath = getParentDirectory(path);
 	const Parser::Server &curServer = this->getServer(port);
-
-	// Find exact match for the location using the path
 	std::vector<Parser::Location>::const_iterator location_iter;
+
+	// --- 1st step: Find exact match for the location using the path
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
-		if (location.name == path)
+		if (location.root != "" && location.root == parentPath)
 		{
-			std::cout << YELLOW "I found " << path << "!!!!" RESET << std::endl;
-			std::cout << "location: " << location.name << std::endl;
+			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
+			return location;
+		}
+// *** There is doubt!!! ***//
+		else if (location.root != "" && /*location.name == parentPath*/parentPath == "/")
+		{
+			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
 			return location;
 		}
 	}
-	// No exact match found, look for the closest matching path
+	
+	// --- 2st step: No exact match found, look for the closest matching path
 	const Parser::Location* bestMatch = NULL;
 	size_t longestMatchLength = 0;
 	for (location_iter = curServer.locations.begin(); location_iter != curServer.locations.end(); ++location_iter)
 	{
 		const Parser::Location &location = *location_iter;
-		// Check if location.root is a prefix of path
-		if (path.find(location.root) == 0)
+		// Check if location.root is a prefix of parentPath
+		if (parentPath.find(location.root) == 0)
 		{
 			size_t matchLength = location.root.length();
 			if (matchLength > longestMatchLength && path[location.root.length()] == '/')
 			{
 				longestMatchLength = matchLength;
 				bestMatch = &location;
-				std::cout << "bestMatch: " << bestMatch->name << std::endl;
+				// std::cout << "bestMatch: " << bestMatch->name << std::endl;
 			}
 		}
 	}
 	if (bestMatch)
 	{
-		std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
+		// std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
 		return *bestMatch;
-		// instead of return ret, I want to put exception, or NULL
-		// return ret;
 	}
 
-	// return ret;
+	// --- If this line is reached, this folder(parentPath) doesn't exist.
 	throw std::runtime_error("the root has not been encontered");
 }
 

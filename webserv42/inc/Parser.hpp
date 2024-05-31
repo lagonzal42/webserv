@@ -85,6 +85,8 @@ class Parser
 			std::vector<std::string> obtainMethod(std::string const & line);
 			size_t	obtainSizeFromStr(std::string const & num);
 
+			std::string	getParentDirectory( const std::string & path ) const;
+
 	protected:
 
 

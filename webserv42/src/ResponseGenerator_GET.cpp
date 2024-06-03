@@ -115,7 +115,7 @@ const char	*ResponseGenerator::getFileResponse(Request& req, const Parser::Serve
 	std::stringstream ss;
 	ss << content.size();
 
-	response = "HTTP/1.1" + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
 	std::cout << response << std::endl;
 	return ((response.c_str()));

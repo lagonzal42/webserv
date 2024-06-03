@@ -25,7 +25,7 @@ bool WebServer::initialize(char **envp, std::string configFile)
 {
 
 	//startSignals();
-
+	stopSignal = false;
 	try
 	{
 		config.parse(configFile);
@@ -146,8 +146,9 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					const char *response = buildResponse(cliVectorPos);
-					sendResponse(pollFDS[i].fd , response);
-					cleanVectors(cliVectorPos);
+					sendResponse(cliVectorPos , response);
+					pollFDS[i].events = POLLIN;
+					//cleanVectors(cliVectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -193,8 +194,6 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	debug("Gonna build reponse in Webserver::buildResponse");
 	debug(RESET);
 
-
-
 	try
 	{
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
@@ -212,8 +211,6 @@ const char	*WebServer::buildResponse(int cliVecPos)
 			break;
 	}
 
-
-
 	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
 	const char *response;
 	Request& req = requests[cliVecPos];
@@ -222,7 +219,7 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	{
 		case(GET):
 			std::cout << "Get Response" << std::endl;
-			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), /*config.getServer(req.getPort()),*/ envp);
+			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;
@@ -235,6 +232,8 @@ const char	*WebServer::buildResponse(int cliVecPos)
 			//response = ResponseGenerator::errorResponse(config, METHOD_NOT_IMPLEMENTED);
 			break;
 	}
+
+	std::cout << "response " << response << std::endl;
 	return(response);
 }
 
@@ -244,6 +243,7 @@ void WebServer::sendResponse(int vectorPos, const char* response) //still implem
 {
 	if (send(clientSockets[vectorPos], response, std::strlen(response), 0) != -1)
 		std::cerr << "Send failed" << std::endl;
+	
 }
 
 

@@ -41,13 +41,14 @@ class WebServer
 		std::vector<pollfd>			pollFDS;		//pollfd structs to use poll in them and check events
 		std::vector<Request>		requests;		//Request class vector in order to process requests and storage them till the socket is ready to write
 		std::vector<sockaddr_in>	serverAddrs;	//Server address vector to bind the server sockets
-		bool						stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
+		static bool					stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
 		Parser						config;
 		std::vector<char *>			envp;
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
 		void	startSignals(void);
-		void signalHandle(int);
+		static void signalQuitHandle(int);
+		static void signalIntHandle(int);
 	
 	public:
 

@@ -24,7 +24,7 @@ WebServer::~WebServer()
 bool WebServer::initialize(char **envp, std::string configFile)
 {
 
-	//startSignals();
+	startSignals();
 	stopSignal = false;
 	try
 	{
@@ -42,11 +42,24 @@ bool WebServer::initialize(char **envp, std::string configFile)
 	return (0);
 }
 
-// void	WebServer::startSignals(void)
-// {
-// 	signal(SIGINT, (void *)signalHandle);
-// 	signal(SIGQUIT, this->signalHandle);
-// }
+bool WebServer::stopSignal = false;
+
+void WebServer::signalIntHandle(int)
+{
+	stopSignal = true;
+	std::cout << "Sigint detected" << std::endl;
+}
+
+void WebServer::signalQuitHandle(int)
+{
+	stopSignal = true;
+}
+
+void	WebServer::startSignals(void)
+{
+	signal(SIGINT, signalIntHandle);
+	signal(SIGQUIT, signalQuitHandle);
+}
 
 bool	WebServer::initializeSockets(void)
 {
@@ -107,11 +120,6 @@ void	WebServer::initializeEnvp(char **originalEnvp)
 	}
 	envp.push_back(const_cast<char *>(std::string("QUERY_STRING=").c_str()));
 	envp.push_back(NULL);
-}
-
-void WebServer::signalHandle(int)
-{
-	stopSignal = true;
 }
 
 void	WebServer::serverLoop(void)

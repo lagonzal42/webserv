@@ -245,15 +245,12 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	return(response);
 }
 
-
-
 void WebServer::sendResponse(int vectorPos, const char* response) //still implementing
 {
 	if (send(clientSockets[vectorPos], response, std::strlen(response), 0) != -1)
 		std::cerr << "Send failed" << std::endl;
 	
 }
-
 
 void	WebServer::cleanVectors(int vectorPos)
 {

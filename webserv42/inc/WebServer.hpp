@@ -49,6 +49,14 @@ class WebServer
 		void	startSignals(void);
 		static void signalQuitHandle(int);
 		static void signalIntHandle(int);
+		bool	initializeSockets();
+		void	initializeEnvp(char **originalEnvp);
+		void	acceptConnection(int servVecPos);
+		int		readRequest(int cliVecPos);
+		void	processRequest(int vectorPos);
+		const char	*buildResponse(int cliVecPos);
+		void	sendResponse(int vectorPos, const char *response);
+		void	cleanVectors(int vectorPos);
 	
 	public:
 
@@ -61,28 +69,9 @@ class WebServer
 		// This funtion will do de socket(), bind(), listen() loop.
 		// Return value: if true something went wrong, no server is created
 		bool	initialize(char **envp, std::string configFile);
-
-		bool	initializeSockets();
-
-		void	initializeEnvp(char **originalEnvp);
-
 		//This will be the "infinite loop in wich poll is executed"
 		void	serverLoop();
-
-		void	acceptConnection(int servVecPos);
-
-		int		readRequest(int cliVecPos);
-
-		void	processRequest(int vectorPos);
-
-		const char	*buildResponse(int cliVecPos);
-
-		void	sendResponse(int vectorPos, const char *response);
-
-		void	cleanVectors(int vectorPos);
-
 		void	serverClose(void);
-
 		void	setStopSignal(bool stop);
 	
 	public:

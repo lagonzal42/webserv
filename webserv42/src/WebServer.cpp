@@ -146,7 +146,7 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					const char *response = buildResponse(cliVectorPos);
-					sendResponse(pollFDS[i].fd , response);
+					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
 					//cleanVectors(cliVectorPos);
 				}

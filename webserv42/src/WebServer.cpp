@@ -11,6 +11,7 @@
 
 #include "WebServer.hpp"
 #include "Parser.hpp"
+#include "ResponseGenerator_DELETE.hpp"
 #include <signal.h>
 #ifndef METHOD_NOT_IMPLEMENTED
 # define METHOD_NOT_IMPLEMENTED	501
@@ -221,6 +222,7 @@ const char	*WebServer::buildResponse(int cliVecPos)
 
 	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
 	const char *response;
+	std::string responseDelete;
 	Request& req = requests[cliVecPos];
 	req.print();
 	switch(i)
@@ -234,6 +236,8 @@ const char	*WebServer::buildResponse(int cliVecPos)
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;
+			responseDelete = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), "./docs" + req.getPath());
+			response = responseDelete.c_str();
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;

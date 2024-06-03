@@ -525,13 +525,14 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		const Parser::Location &location = *location_iter;
 		if (location.root != "" && location.root == parentPath)
 		{
-			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
+			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation: " RESET << location.root << std::endl;
 			return location;
 		}
 // *** There is doubt!!! ***//
 		else if (location.root != "" && /*location.name == parentPath*/parentPath == "/")
 		{
-			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
+			std::cout << ROSE "Detected Location: path: \"" << parentPath << "\" in getCurLocation: " RESET << location.root << std::endl;
+			// std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
 			return location;
 		}
 	}

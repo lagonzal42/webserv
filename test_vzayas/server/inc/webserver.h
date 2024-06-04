@@ -31,5 +31,8 @@
 #define SOCK_N 4
 #define NOT_FOUND 404
 
+std::string getFilename(const std::string &contentDisposition);
+// std::string base64_encode(const std::string &input);
+std::string parseChunked(std::string request);
 
 #endif

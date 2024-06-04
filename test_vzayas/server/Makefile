@@ -31,9 +31,13 @@ export ART
 SRCDIR := src/
 
 MAIN = main
+UTILS = utils
+PARSER = parser
 
-PLAIN_SRCS =	$(addsuffix .cpp, $(addprefix main/, $(MAIN)))\
-				
+PLAIN_SRCS = $(addsuffix .cpp, $(addprefix main/, $(MAIN)))\
+			 $(addsuffix .cpp, $(addprefix utils/, $(UTILS)))\
+			 $(addsuffix .cpp, $(addprefix parser/, $(PARSER)))\
+
 SRCS := $(addprefix $(SRCDIR), $(PLAIN_SRCS))
 
 # OBJS #
@@ -57,6 +61,7 @@ $(OBJDIR)%.o: $(SRCDIR)%.cpp
 
 clean:
 	$(RM) -rf $(OBJDIR)
+	$(RM) -rf /home/vzayas/webserv/test_vzayas/server/http/uploads/*
 	echo "$(RED)༺ Objs deleted༻$(END)"
 
 fclean: clean

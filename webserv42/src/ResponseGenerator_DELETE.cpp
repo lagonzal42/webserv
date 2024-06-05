@@ -1,4 +1,5 @@
 #include "ResponseGenerator_DELETE.hpp"
+#include "ResponseGenerator_GET.hpp"
 #include <cstdio>   // for remove
 #include <algorithm>
 
@@ -41,7 +42,7 @@ std::string ResponseGeneratorDELETE::generateHttpResponse(const std::string &sta
 	return oss.str();
 }
 
-std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const std::string &fullPath)
+std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer, const std::string &fullPath)
 {
 	std::string response;
 
@@ -66,20 +67,23 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			else
 			{
 				std::cout << RED "failed to remove file" RESET << std::endl;
-				response = generateHttpResponse("500 Internal Server Error", "Internal Server Error", "Failed to delete the requested file on the server.");
+				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentSer);
+				// response = generateHttpResponse("500 Internal Server Error", "Internal Server Error", "Failed to delete the requested file on the server.");
 			}
 		}
 		else
 		{
-			std::cerr << "Bad request" << std::endl;
-			response = generateHttpResponse("400 Bad Request", "Bad Request", "Invalid item ID.");
+			std::cerr << RED "Bad request" RESET << std::endl;
+			// response = generateHttpResponse("400 Bad Request", "Bad Request", "Invalid item ID.");
+			response = ResponseGenerator::errorResponse(BAD_REQUEST, currentSer);
 		}
 	}
 	else
 	{
-		std::cerr << "Method not allowed" << std::endl;
-		response = generateHttpResponse("405 Method Not Allowed", "Method Not Allowed", "The requested Method is not allowed.");
+		std::cerr << RED "Method not allowed" RESET << std::endl;
+		// response = generateHttpResponse("405 Method Not Allowed", "Method Not Allowed", "The requested Method is not allowed.");
+		response = ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentSer);
 	}
-	
+	std::cout << response << std::endl;
 	return response;
 }

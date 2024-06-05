@@ -25,7 +25,7 @@ WebServer::~WebServer()
 bool WebServer::initialize(char **envp, std::string configFile)
 {
 
-	//startSignals();
+	startSignals();
 	stopSignal = false;
 	try
 	{
@@ -43,11 +43,24 @@ bool WebServer::initialize(char **envp, std::string configFile)
 	return (0);
 }
 
-// void	WebServer::startSignals(void)
-// {
-// 	signal(SIGINT, (void *)signalHandle);
-// 	signal(SIGQUIT, this->signalHandle);
-// }
+bool WebServer::stopSignal = false;
+
+void WebServer::signalIntHandle(int)
+{
+	stopSignal = true;
+	std::cout << "Sigint detected" << std::endl;
+}
+
+void WebServer::signalQuitHandle(int)
+{
+	stopSignal = true;
+}
+
+void	WebServer::startSignals(void)
+{
+	signal(SIGINT, signalIntHandle);
+	signal(SIGQUIT, signalQuitHandle);
+}
 
 bool	WebServer::initializeSockets(void)
 {
@@ -110,11 +123,6 @@ void	WebServer::initializeEnvp(char **originalEnvp)
 	envp.push_back(NULL);
 }
 
-void WebServer::signalHandle(int)
-{
-	stopSignal = true;
-}
-
 void	WebServer::serverLoop(void)
 {
 	while (!stopSignal)
@@ -146,7 +154,7 @@ void	WebServer::serverLoop(void)
 					//BUILD RESPONSE HERE
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
-					const char *response = buildResponse(cliVectorPos);
+					std::string response = buildResponse(cliVectorPos);
 					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
 					//cleanVectors(cliVectorPos);
@@ -187,7 +195,7 @@ int WebServer::readRequest(int cliVecPos)
 	return(0);
 }
 
-const char	*WebServer::buildResponse(int cliVecPos)
+std::string WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
 
@@ -213,7 +221,7 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	}
 
 	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
-	const char *response;
+	std::string response;
 	std::string responseDelete;
 	Request& req = requests[cliVecPos];
 	req.print();
@@ -228,8 +236,7 @@ const char	*WebServer::buildResponse(int cliVecPos)
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;
-			responseDelete = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), "./docs" + req.getPath());
-			response = responseDelete.c_str();
+			response = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), "./docs" + req.getPath());
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;
@@ -241,15 +248,12 @@ const char	*WebServer::buildResponse(int cliVecPos)
 	return(response);
 }
 
-
-
-void WebServer::sendResponse(int vectorPos, const char* response) //still implementing
+void WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
-	if (send(clientSockets[vectorPos], response, std::strlen(response), 0) != -1)
+	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) != -1)
 		std::cerr << "Send failed" << std::endl;
 	
 }
-
 
 void	WebServer::cleanVectors(int vectorPos)
 {

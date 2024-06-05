@@ -41,13 +41,22 @@ class WebServer
 		std::vector<pollfd>			pollFDS;		//pollfd structs to use poll in them and check events
 		std::vector<Request>		requests;		//Request class vector in order to process requests and storage them till the socket is ready to write
 		std::vector<sockaddr_in>	serverAddrs;	//Server address vector to bind the server sockets
-		bool						stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
+		static bool					stopSignal;		//Stop signal to control if the user has pressed Ctrl + C or Ctrl + Z to stop the server and free memory in case of need
 		Parser						config;
 		std::vector<char *>			envp;
 
 		// This function will start the signals, no need to be public as it is going to be called from the server class.
 		void	startSignals(void);
-		void signalHandle(int);
+		static void signalQuitHandle(int);
+		static void signalIntHandle(int);
+		bool	initializeSockets();
+		void	initializeEnvp(char **originalEnvp);
+		void	acceptConnection(int servVecPos);
+		int		readRequest(int cliVecPos);
+		void	processRequest(int vectorPos);
+		std::string buildResponse(int cliVecPos);
+		void	sendResponse(int vectorPos, std::string& response);
+		void	cleanVectors(int vectorPos);
 	
 	public:
 
@@ -60,28 +69,9 @@ class WebServer
 		// This funtion will do de socket(), bind(), listen() loop.
 		// Return value: if true something went wrong, no server is created
 		bool	initialize(char **envp, std::string configFile);
-
-		bool	initializeSockets();
-
-		void	initializeEnvp(char **originalEnvp);
-
 		//This will be the "infinite loop in wich poll is executed"
 		void	serverLoop();
-
-		void	acceptConnection(int servVecPos);
-
-		int		readRequest(int cliVecPos);
-
-		void	processRequest(int vectorPos);
-
-		const char	*buildResponse(int cliVecPos);
-
-		void	sendResponse(int vectorPos, const char *response);
-
-		void	cleanVectors(int vectorPos);
-
 		void	serverClose(void);
-
 		void	setStopSignal(bool stop);
 	
 	public:

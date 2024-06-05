@@ -48,11 +48,73 @@
 
 /*=============================*/
 
-const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+std::string ResponseGenerator::parsePath(std::string servPath, std::string locPath, std::string reqPath)
+{
+	bool lastSlash;
+	bool firstSlash;
+
+	if (reqPath[reqPath.length() - 1] != '/')
+		lastSlash = false;
+	else
+		lastSlash = true;
+	if (!servPath.empty() && servPath[0] == '/')
+		firstSlash = true;
+	else
+		firstSlash = false;
+
+	std::istringstream			pathSS(servPath + locPath + reqPath);
+	std::string					pathPart;
+	std::vector<std::string>	pathPartsVec;
+
+	while (std::getline(pathSS, pathPart, '/'))
+	{
+		if (!pathPart.empty())
+			pathPartsVec.push_back(pathPart);
+	}
+
+
+	std::cout << BLUE;
+	for (size_t i = 0; i < pathPartsVec.size(); i++)
+		std::cout << pathPartsVec[i] << std::endl;
+	
+	std::cout << RESET;
+
+	std::vector<std::string> cleanPathVec;
+	for (std::vector<std::string>::iterator it = pathPartsVec.begin(); it != pathPartsVec.end(); it++)
+	{
+		if (*it == "..")
+		{
+			if (!cleanPathVec.empty())
+				cleanPathVec.pop_back();
+		}
+		else if (*it != "." || it == pathPartsVec.begin())
+			cleanPathVec.push_back(*it);
+	}
+
+	std::string cleanPath;
+
+	if (firstSlash)
+		cleanPath += "/";
+
+	while (!cleanPathVec.empty())
+	{
+		cleanPath += cleanPathVec.front();
+		if (cleanPathVec.size() > 1 || lastSlash)
+			cleanPath += "/";
+		cleanPathVec.erase(cleanPathVec.begin());
+	}
+	return (cleanPath);
+}
+
+std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
 	debug(RED);
 	debug("ResponseGenerator::generateGetResponse");
 	debug(RESET);
+
+	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
+	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, currentLoc.root, req.getPath());
+	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
@@ -69,43 +131,39 @@ const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 	else if (currentLoc.name == "cgi")
 	{
 		std::cout << "Processing CGI GET request" << std::endl;
-		return (ResponseGenerator::getCgiResponse(req, envp, currentServ));
+		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
-	else if (currentLoc.autoindex && !req.getPath().empty() && req.getPath()[req.getPath().length() - 1] == '/')
+	else if (currentLoc.autoindex && req.getPath()[req.getPath().length() - 1] == '/')
 	{
 		std::cout << "Processing autoindex GET request" << std::endl;
-		return (ResponseGenerator::getAutoindexResponse(req, currentServ));
+		return (ResponseGenerator::getAutoindexResponse(currentServ, cleanPath));
 	}
 	else
 	{
 		std::cout << "Processing file GET request" << std::endl;
-		return (ResponseGenerator::getFileResponse(req, currentServ));
+		return (ResponseGenerator::getFileResponse(currentLoc, currentServ, cleanPath));
 	}
 }
 
-const char	*ResponseGenerator::getFileResponse(Request& req, const Parser::Server& currentServ)
+std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response;
 	std::stringstream responseStatus;
-	std::string filePath = currentServ.root;
 
-	if (req.getPath().length() == 1)
+	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
-		filePath += "index.html";
-	}
-	else
-	{
-		filePath += req.getPath();
-		if (filePath[filePath.length() - 1] == '/')
-			filePath += "index.html";
-	}
+		if (!currentLoc.index.empty())
+			cleanPath += currentLoc.index;
+		else
+			cleanPath += "index.html";
 
+	}
 	responseStatus << 200 << " OK";
-	debug("gona open " + filePath);
-	std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
+	debug("gona open " + cleanPath);
+	std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
-		std::cerr << "Failed to open" << filePath << std::endl;
+		std::cerr << "Failed to open" << cleanPath << std::endl;
 		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
 		//return (NOT_IMPLEMENTED);
 	}
@@ -117,18 +175,17 @@ const char	*ResponseGenerator::getFileResponse(Request& req, const Parser::Serve
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
-	std::cout << response << std::endl;
-	return ((response.c_str()));
+	std::cout << BLUE << response << RESET <<std::endl;
+
+	return ((response));
 }
 
-const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::Server& currentServ)
+std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response, responseHead, responseBody;
-	std::string dirPath = "." + req.getPath();
-	DIR* directory = opendir(dirPath.c_str());
+	DIR* directory = opendir(cleanPath.c_str());
 	MimeDict* MimeDict = MimeDict::getMimeDict();
     std::map<std::string, std::string> mime = MimeDict->getMap();
-	
 
 	if (directory == NULL)
 	{
@@ -136,31 +193,42 @@ const char	*ResponseGenerator::getAutoindexResponse(Request& req, const Parser::
 		//return (NOT_IMPLEMENTED);
 	}
 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
-	responseBody += "<html><head><title>Index of " + dirPath + "</title></head>";
-	responseBody += "<body><h1>Index of " + dirPath + "</h1>";
+	responseBody += "<html><head><title>Index of " + cleanPath + "</title></head>";
+	responseBody += "<body><h1>Index of " + cleanPath + "</h1>";
 
 	responseBody += "<ul>";
 	struct dirent	*file = readdir(directory);
 
 	while (file)
 	{
-		responseBody += "<li><a href=\"" + dirPath + file->d_name + "\"" + file->d_name + "</a></li>";
+		responseBody += "<li><a href=\"" + cleanPath + file->d_name + "\"" + file->d_name + "</a></li>";
 		file = readdir(directory);
 	}
 	closedir(directory);
 	std::stringstream ss;
 	ss << responseBody.size();
 	response = responseHead + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + responseBody;
-	return (response.c_str());
+	return (response);
 }
 
-const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>& envp, const Parser::Server& currentServ)
+std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
+	if (cleanPath[cleanPath.length() - 1] == '/')
+	{
+		if (!currentLoc.index.empty())
+			cleanPath += currentLoc.index;
+		else
+			cleanPath += "index.html";
+
+	}
+
 	std::string queryString = req.getQueryString();
 	if (!queryString.empty())
 	{
 		//here we need the envp in order to modify it and add the query string
-		;
+		envp.pop_back();
+		std::string qs = "QUERY_STRING=" + req.getQueryString(); 
+		envp.push_back(const_cast<char *>(qs.c_str()));
 	}
 
 	int pipes[2];
@@ -179,8 +247,7 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 		dup2(pipes[1], STDOUT_FILENO);
 		close(pipes[0]);
 		close(pipes[1]);
-		std::string fileName = "." + req.getPath();
-		char *filepath[] = {const_cast<char *>(fileName.c_str()), NULL};
+		char *filepath[] = {const_cast<char *>(cleanPath.c_str()), NULL};
 
 		if (execve(filepath[0], filepath, &envp[0]) == -1)
 		{
@@ -191,7 +258,7 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 	}
 	else
 	{
-		const char *response;
+		std::string response;
 		int status;
 		close(pipes[1]);
 
@@ -235,7 +302,6 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 				ss << content.size();
 
 				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				response = responseStr.c_str();
 			}
 		}
 		else //if the child procces has not exited
@@ -248,13 +314,14 @@ const char	*ResponseGenerator::getCgiResponse(Request& req, std::vector<char *>&
 	}
 }
 
-const char *ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
+std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
 {
 	std::stringstream	responseStatus;
 	std::string			fileName;
 
 	responseStatus << "responseCode" << " KO";
-	fileName = currentServ.root + currentServ.error_pages.at(errorCode);
+	// fileName = currentServ.root + currentServ.error_pages.at(errorCode);
+	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
 	std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open() && errorCode != INTERNAL_SERVER_ERROR)
@@ -268,5 +335,5 @@ const char *ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	contentSize << content.size();
 	std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
 	response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
-	return (response.c_str());
+	return (response);
 }

@@ -106,7 +106,7 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 	return (cleanPath);
 }
 
-const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
 	debug(RED);
 	debug("ResponseGenerator::generateGetResponse");
@@ -145,7 +145,7 @@ const char	*ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 	}
 }
 
-const char *ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
+std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response;
 	std::stringstream responseStatus;
@@ -175,11 +175,12 @@ const char *ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
-	std::cout << response << std::endl;
-	return ((response.c_str()));
+	std::cout << BLUE << response << RESET <<std::endl;
+
+	return ((response));
 }
 
-const char	*ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response, responseHead, responseBody;
 	DIR* directory = opendir(cleanPath.c_str());
@@ -207,10 +208,10 @@ const char	*ResponseGenerator::getAutoindexResponse(const Parser::Server& curren
 	std::stringstream ss;
 	ss << responseBody.size();
 	response = responseHead + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + responseBody;
-	return (response.c_str());
+	return (response);
 }
 
-const char	*ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
@@ -257,7 +258,7 @@ const char	*ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	}
 	else
 	{
-		const char *response;
+		std::string response;
 		int status;
 		close(pipes[1]);
 
@@ -301,7 +302,6 @@ const char	*ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 				ss << content.size();
 
 				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				response = responseStr.c_str();
 			}
 		}
 		else //if the child procces has not exited
@@ -314,7 +314,7 @@ const char	*ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	}
 }
 
-const char *ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
+std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
 {
 	std::stringstream	responseStatus;
 	std::string			fileName;
@@ -335,5 +335,5 @@ const char *ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	contentSize << content.size();
 	std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
 	response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
-	return (response.c_str());
+	return (response);
 }

@@ -54,8 +54,8 @@ class WebServer
 		void	acceptConnection(int servVecPos);
 		int		readRequest(int cliVecPos);
 		void	processRequest(int vectorPos);
-		const char	*buildResponse(int cliVecPos);
-		void	sendResponse(int vectorPos, const char *response);
+		std::string buildResponse(int cliVecPos);
+		void	sendResponse(int vectorPos, std::string& response);
 		void	cleanVectors(int vectorPos);
 	
 	public:

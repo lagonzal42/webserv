@@ -250,7 +250,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 
 void WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
-	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) != -1)
+	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0)== -1)
 		std::cerr << "Send failed" << std::endl;
 	
 }

@@ -110,6 +110,8 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 {
 	debug(RED);
 	debug("ResponseGenerator::generateGetResponse");
+	debug("location name:");
+	debug(currentLoc.name);
 	debug(RESET);
 
 	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
@@ -122,13 +124,13 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 		//return (NOT_IMPLEMENTED);
 		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
-	else if (currentLoc.name == "redir")
+	else if (currentLoc.name == "/redir/")
 	{
 		std::cout << "Processing Redirection GET request" << std::endl;
 		//return (ResponseGenerator::getRedirResponse(??));
 		return (NOT_IMPLEMENTED);
 	}
-	else if (currentLoc.name == "cgi")
+	else if (currentLoc.name == "/cgi/")
 	{
 		std::cout << "Processing CGI GET request" << std::endl;
 		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
@@ -323,17 +325,43 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	// fileName = currentServ.root + currentServ.error_pages.at(errorCode);
 	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
-	std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open() && errorCode != INTERNAL_SERVER_ERROR)
+	std::ifstream file(fileName.c_str());
+	if (!file.is_open())
 	{
 		std::cerr << "Failed to open " << fileName << std::endl;
-		return (errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		if (errorCode != INTERNAL_SERVER_ERROR)
+		{
+			return (errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		}
+		else
+		{
+			std::string response;
+			response = "HTTP/1.1 500 OK\r\nContent-Type: text/html\r\nContent-Length: 12";
+			response.append("\r\n\r\n");
+			response.append("Server Error\n");
+			return (response);
+		}
 	}
+	debug("File opened");
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
-	std::stringstream contentSize;
-	contentSize << content.size();
-	std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
-	response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
-	return (response);
+	std::stringstream ss;
+	ss << content.size();
+	std::string response;
+
+	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+	
+	std::cout << BLUE << response << RESET <<std::endl;
+
+	return ((response));
+	// std::string response;
+
+	// response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+	// std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	// file.close();
+	// std::stringstream contentSize;
+	// contentSize << content.size();
+	// std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
+	// response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
+	// return (response);
 }

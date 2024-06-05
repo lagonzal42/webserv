@@ -560,6 +560,11 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		// std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
 		return *bestMatch;
 	}
+	else
+	{
+		return *(curServer.locations.begin());
+	}
+
 
 	// --- If this line is reached, this folder(parentPath) doesn't exist.
 	throw std::runtime_error("the root has not been encontered");

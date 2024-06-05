@@ -115,7 +115,7 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 	debug(RESET);
 
 	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
-	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, currentLoc.root, req.getPath());
+	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, "", req.getPath());
 	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
@@ -246,12 +246,16 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 
 	if (id == 0)
 	{
+		std::string binBash = "/bin/bash";
+		std::string bash = "bash";
+		char *filepath[] = {const_cast<char *>(bash.c_str()), const_cast<char *>(cleanPath.c_str()), NULL};
+
+		std::cout << "Path: " << cleanPath << std::endl;
+
 		dup2(pipes[1], STDOUT_FILENO);
 		close(pipes[0]);
 		close(pipes[1]);
-		char *filepath[] = {const_cast<char *>(cleanPath.c_str()), NULL};
-
-		if (execve(filepath[0], filepath, &envp[0]) == -1)
+		if (execve(binBash.c_str(), filepath, &envp[0]) == -1)
 		{
 			std::cerr << "Execve failed" << std::endl;
 			exit(1);
@@ -263,24 +267,27 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		std::string response;
 		int status;
 		close(pipes[1]);
-
-		clock_t	start = clock();
-		clock_t now = clock() - start;
-		while (((float) now) / CLOCKS_PER_SEC < 0.2f)
+		time_t start = std::time(NULL);
+		time_t now = std::time(NULL);
+		while (now - start < 1)
 		{
 			std::cout << "Waiting for child process" << std::endl;
+			now = std::time(NULL);
 		}
 
-		waitpid(id, &status, WNOHANG);
+		waitpid(id, &status, 0);
 		if (WIFEXITED(status))
 		{
+			std::cout << "Exited child process" << std::endl;
 			if (WEXITSTATUS(status) != 0)
 			{
+				std::cout << "Bad exited" << std::endl;
 				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
 				//response = NOT_IMPLEMENTED;
 			}
 			else
 			{
+				std::cout << "well exited" << std::endl;
 				char buffer[BUFFER_SIZE];
 				int readed = BUFFER_SIZE;
 
@@ -288,8 +295,9 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 				while (readed == BUFFER_SIZE)
 				{
 					readed = read(pipes[0], buffer, BUFFER_SIZE);
-					if (readed > 0)
+					if (readed < 0)
 					{
+						std::cout << "read failed" << std::endl;
 						close(pipes[0]);
 						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 						//response = NOT_IMPLEMENTED;
@@ -304,10 +312,12 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 				ss << content.size();
 
 				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+				std::cout << "response str is: " << responseStr << std::endl;
 			}
 		}
 		else //if the child procces has not exited
 		{
+			std::cout << "Child didnt exit" << std::endl;
 			kill(id, SIGKILL);
 			response = ResponseGenerator::errorResponse(TIMEOUT, currentServ);
 			//response = NOT_IMPLEMENTED;

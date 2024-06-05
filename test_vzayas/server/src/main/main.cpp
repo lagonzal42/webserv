@@ -1,77 +1,19 @@
 #include "../../inc/webserver.h"
 
-extern char ** environ;
-
-void	doCgi(std::string& fileName, int client_socket)
+void	doGet(std::string& fileName, int client_socket)
 {
-	int pipes[2];
-
-
-	if (pipe(pipes) != 0)
-	{
-		std::cout << "Failed to create pipes" << std::endl;
-		return ;
-	}
-
-	int id = fork();
-
-	if (id == 0)
-	{
-		dup2(pipes[1], STDOUT_FILENO);
-		close(pipes[1]);
-		close(pipes[0]);
-		fileName = "." + fileName;
-		char *filepath[] = {const_cast<char *>(fileName.c_str()), NULL};
-
-		if (execve(filepath[0], filepath, environ) == -1)
-		{
-			std::cout << "execve failed" << std::endl;
-			close(client_socket);
-		}
-	}
-	else
-	{
-		int status;
-		close(pipes[1]);
-		
-		waitpid(id, &status, 0);
-		if (WIFEXITED(status)) //proccess terminated normally by no signal
-		{
-			if (WEXITSTATUS(status) != 0)
-			{
-				std::string response = "HTTP/1.1 404 KO\r\nContent-Type: text/html\r\nContent-Length: 0 \r\n\r\n";
-				send(client_socket, response.c_str(), response.size(), 0);
-			}
-		}
-		char buffer[BUFFER_SIZE];
-		int readed = read(pipes[0], buffer, BUFFER_SIZE);
-
-		close(pipes[0]);
-		std::string content(buffer);
-		if (readed > 0)
-		{
-			std::cout << "Response: " << content;
-
-			std::stringstream ss;
-    		ss << content.size();
-
-			std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-			send(client_socket, response.c_str(), response.size(), 0);
-		}
-		close(client_socket);
-	}
-}
-
-void	doStandard(std::string& fileName, int client_socket)
-{
-	std::cout << "Doing GET" << std::endl;
+	std::cout << "-----Doing Get-----" << std::endl;
 	std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
-	{
-		std::cerr << "Failed to open index.html" << std::endl; // this trigger all time, returning the page or not. ???
-		return;
-	}
 
+	// if (!file.is_open())
+    // {
+    //     if (fileName != "favicon.ico") {
+    //         std::cerr << "Failed to open " << fileName << std::endl;
+    //     }
+    //     return;
+    // }
+
+	// Read the file content
 	std::string html_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 
@@ -79,36 +21,36 @@ void	doStandard(std::string& fileName, int client_socket)
 	std::stringstream ss;
     ss << html_content.size();
 
+	// Create a simple response
 	std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + html_content;
 	std::cout << "response: " << response << std::endl;
 	send(client_socket, response.c_str(), response.size(), 0);
 	close(client_socket);
 }
 
-// Helper function to extract filename from Content-Disposition header
-std::string getFilename(const std::string &contentDisposition) {
-    size_t pos = contentDisposition.find("filename=");
-    if (pos == std::string::npos) {
-        return "";
-    }
-    size_t start = contentDisposition.find('"', pos) + 1;
-    size_t end = contentDisposition.find('"', start);
-    return contentDisposition.substr(start, end - start);
-}
+void doPost(std::string fileName, std::string request, int client_socket, bool chunked)
+{
+	std::cerr << "-----Doing Post-----" << std::endl;
 
-void doPost(std::string fileName, std::string request, int client_socket) {
-	std::cout << "Doing POST" << std::endl;
-
+	// Parse the request to get the boundary string, filename, and file content
     std::istringstream ss(request);
     std::string line;
     std::string boundary;
     std::string fileContent;
 
+	std::cout << "Request: " << request << std::endl;
+
+	if (chunked) {
+		parseChunked(request);
+	}
+
     // Get the boundary string
     while (std::getline(ss, line) && line != "\r") {
+		std::cerr << "Line: " << line << std::endl;
         size_t pos = line.find("boundary=");
         if (pos != std::string::npos) {
             boundary = "--" + line.substr(pos + 9);
+			boundary.erase(boundary.rfind("\r"));
             break;
         }
     }
@@ -125,7 +67,10 @@ void doPost(std::string fileName, std::string request, int client_socket) {
         }
         if (line.find("Content-Disposition: ") != std::string::npos) {
             fileName = getFilename(line);
-            std::cout << "Filename: " << fileName << std::endl;
+			if (fileName.empty()) {
+				fileName = "unknown";
+			}
+			std::cout << "Filename: " << fileName << std::endl;
         } else if (line.find("Content-Type: ") != std::string::npos) {
             isFilePart = true;
             std::getline(ss, line); // Skip the empty line after headers
@@ -149,7 +94,8 @@ void doPost(std::string fileName, std::string request, int client_socket) {
 
     // Save the file to the server
     if (!fileName.empty() && !fileContent.empty()) {
-        std::ofstream ofs(("/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads/" + fileName).c_str(), std::ios::binary);
+        std::cout << "File Content: " << fileContent << std::endl;
+		std::ofstream ofs(("/home/vzayas/webserv/test_vzayas/server/http/uploads/" + fileName).c_str(), std::ios::binary);
         if (ofs.is_open()) {
             ofs.write(fileContent.c_str(), fileContent.size());
             ofs.close();
@@ -177,49 +123,45 @@ void doPost(std::string fileName, std::string request, int client_socket) {
     send(client_socket, response.c_str(), response.size(), 0);
 }
 
-void handle_connection(int client_socket) 
+void handle_connection(int client_socket)
 {
 	char buffer[BUFFER_SIZE] = {0};
 	int valread = read(client_socket, buffer, BUFFER_SIZE);
+	int yes = 1;
+
+	setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes));
+	
 	if (valread > 0) {
-		std::cout << "Received: " << buffer << std::endl;
+		// std::cout << "Received: " << buffer << std::endl;
 
 		std::string req(buffer);
 		std::string method;
 		std::istringstream reqStream(req);
 
+		bool isChunked = false;
+		if (req.find("Transfer-Encoding: chunked") != std::string::npos) {
+			isChunked = true;
+			std::cerr << "Chunked request" << std::endl;
+		}
+
 		std::getline(reqStream, method, ' ');
 		
-		std::cout << "Method: " << method << std::endl;
+		// std::cout << "Method: " << method << std::endl;
 
 		std::string fileName;
 		std::getline(reqStream, fileName, ' ');
 
-		std::cout << "Requested file: " << fileName << std::endl;
-		// while (std::getline(reqStream, fileName, ' ')) {
-		// 	std::cout << "Requested file: " << fileName << std::endl;
-		// }
+		// std::cout << "Requested file: " << fileName << std::endl;
 
 		if (method == "POST") {
             // Procesar la solicitud POST
-            if (fileName == "/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads")
-                doPost(fileName, req, client_socket);
-            // else if (fileName.find("test_vzayas/server/http/uploads/cgi") != std::string::npos)
-            //     doCgi(fileName, client_socket);
-            // else
-            //     doStandard(fileName, client_socket);
+                doPost(fileName, req, client_socket, isChunked);
         }
 		else {
-			if (fileName.find("/home/vzayas-s/Documents/webserv/test_vzayas/server/http/uploads") != std::string::npos) {
-				// std::cout << "The file is in the cgi-bin directory" << std::endl;
-				doCgi(fileName, client_socket);
-			}
-			else {
-				// std::cout << "The file is not in the cgi-bin directory" << std::endl;
-				if (fileName.length() == 1)
-					fileName = "/home/vzayas-s/Documents/webserv/test_vzayas/admin/web/index.html";
-				doStandard(fileName, client_socket);
-			}
+			// Procesar la solicitud GET
+			if (fileName.length() == 1)
+				fileName = "/home/vzayas/webserv/test_vzayas/admin/web/index.html";
+			doGet(fileName, client_socket);
 		}
 	}
 	close(client_socket);
@@ -247,23 +189,24 @@ int main(void)
 
 		memset(&serverAddrs[i], 0, sizeof(serverAddrs[i]));
 		serverAddrs[i].sin_family = AF_INET;
-		serverAddrs[i].sin_port = htons(8080 + i);
+		unsigned int port = 8080 + i;
+		serverAddrs[i].sin_port = htons(port);
 		serverAddrs[i].sin_addr.s_addr = INADDR_ANY; //binds to any address available(?)
 
 		if (bind(serverSocket, (struct sockaddr *) &serverAddrs[i], sizeof(serverAddrs[i])) < 0)
 		{
-			std::cerr << "Bind failed in port " << 8080 + i;
+			std::cerr << "Bind failed in port " << port + i;
 			perror(" ");
 			return (1);
 		}
 		if (listen(serverSocket, 5) < 0)
 		{
-			std::cerr <<  "Failed listen on port " << 8080 + i;
+			std::cerr <<  "Failed listen on port " << port + i;
 			perror(" ");
 			return (1);
 		}
 
-   		std::cout << "Listening on port " << 8080 + i << std::endl;
+   		std::cout << "Listening on port " << port + i << std::endl;
 
 		//is a pollfd structure vector. 
 		fds.push_back({serverSocket, POLLIN, 0});

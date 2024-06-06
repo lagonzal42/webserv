@@ -1,4 +1,5 @@
 #include "ResponseGenerator_GET.hpp"
+#include "ResponseGenerator_DELETE.hpp"
 #include <dirent.h>
 #include <algorithm>
 #include <fstream>

@@ -324,26 +324,12 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	// fileName = currentServ.root + currentServ.error_pages.at(errorCode);
 	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
-	std::cout << GREEN "fileName: " << fileName << RESET << std::endl;
-	// std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
-	// if (!file.is_open() && errorCode != INTERNAL_SERVER_ERROR)
-	// {
-	// 	std::cerr << "Failed to open " << fileName << std::endl;
-	// 	return (errorResponse(INTERNAL_SERVER_ERROR, currentServ));
-	// }
-
 	std::ifstream file(fileName.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
+	if (!file.is_open() && errorCode != INTERNAL_SERVER_ERROR)
 	{
-		std::cerr << "Failed to open" << fileName << std::endl;
-		std::string response = ResponseGeneratorDELETE::generateHttpResponse("500 Internal Server Error", "Internal Server Error", "Failed to delete the requested file on the server.");
-		return response;
-
-		// return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
-		//return (NOT_IMPLEMENTED);
+		std::cerr << "Failed to open " << fileName << std::endl;
+		return (errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
-
-
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	std::stringstream contentSize;

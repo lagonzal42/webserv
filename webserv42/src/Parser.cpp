@@ -252,6 +252,16 @@ std::string	Parser::extractWord(std::string const & str, std::string const & key
 	std::string ret;
 	bool	foundSpace = false;
 	bool	foundKey = false;
+
+	if (key == "")
+	{
+		for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+		{
+			if (*it != ';' && *it != '{' && *it != ' ')
+				ret.push_back(*it);		
+		}
+		return ret;
+	}
 	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
 	{
 		if (!foundKey && *it != ' ')
@@ -309,8 +319,7 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 			break ;
 	case 3:
 			line_ss >> error_page >> error_code >> path;
-			// std::cout << "error_page: " << error_page << "\nerror_code: " << error_code << "\npath: " << path << std::endl;
-			tempServer->error_pages[error_code] = path;
+			tempServer->error_pages[error_code] = extractWord(path, "");
 			break ;
 
 	default: throw std::runtime_error("Unknown block type encountered: " + temp);
@@ -525,14 +534,13 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		const Parser::Location &location = *location_iter;
 		if (location.root != "" && location.root == parentPath)
 		{
-			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation: " RESET << location.root << std::endl;
+			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
 			return location;
 		}
 // *** There is doubt!!! ***//
 		else if (location.root == "" && /*location.name == parentPath*/parentPath == "/")
 		{
-			std::cout << ROSE "Detected Location: path: \"" << parentPath << "\" in getCurLocation: " RESET << location.root << std::endl;
-			// std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
+			std::cout << YELLOW "Detected Location: path: \"" << parentPath << "\" in getCurLocation" RESET << std::endl;
 			return location;
 		}
 	}
@@ -564,7 +572,6 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 	{
 		return *(curServer.locations.begin());
 	}
-
 
 	// --- If this line is reached, this folder(parentPath) doesn't exist.
 	throw std::runtime_error("the root has not been encontered");

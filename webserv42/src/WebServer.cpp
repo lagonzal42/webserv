@@ -233,6 +233,8 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;
+			// HERE THE POST RESPONSE
+			// response = ResponseGenerator::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;

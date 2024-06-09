@@ -42,16 +42,20 @@ std::string ResponseGeneratorDELETE::generateHttpResponse(const std::string &sta
 	return oss.str();
 }
 
-std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer, const std::string &fullPath)
+std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer)
 {
 	std::string response;
+	std::string	fullPath = ResponseGenerator::parsePath(currentSer.root, "", req.getPath());
 
+// test print
+	std::cout << YELLOW "fullPath: " << fullPath << RESET << std::endl;
 	std::cout << "req method: " << req.getMethod() << std::endl;
-	std::cout << "location method: " << std::endl;
+	std::cout << "location method: ";
 
 	for (std::vector<std::string>::const_iterator it = currentLoc.methods.begin(); it != currentLoc.methods.end(); ++it)
 		std::cout << *it << " ";
 	std::cout << std::endl;
+// test print
 
 	// Check if the request method is allowed in config
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) != currentLoc.methods.end())
@@ -59,6 +63,7 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 		size_t last_slash = fullPath.find_last_of('/');
 		if (last_slash != std::string::npos)
 		{
+			std::cout << GREEN "Try to remove: " << fullPath << RESET << std::endl;
 			if (remove(fullPath.c_str()) == 0)
 			{
 				std::cout << CYAN "removed successfully" RESET << std::endl;
@@ -68,20 +73,17 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			{
 				std::cout << RED "failed to remove file" RESET << std::endl;
 				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentSer);
-				// response = generateHttpResponse("500 Internal Server Error", "Internal Server Error", "Failed to delete the requested file on the server.");
 			}
 		}
 		else
 		{
 			std::cerr << RED "Bad request" RESET << std::endl;
-			// response = generateHttpResponse("400 Bad Request", "Bad Request", "Invalid item ID.");
 			response = ResponseGenerator::errorResponse(BAD_REQUEST, currentSer);
 		}
 	}
 	else
 	{
 		std::cerr << RED "Method not allowed" RESET << std::endl;
-		// response = generateHttpResponse("405 Method Not Allowed", "Method Not Allowed", "The requested Method is not allowed.");
 		response = ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentSer);
 	}
 	std::cout << response << std::endl;

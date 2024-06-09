@@ -237,7 +237,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;
 			// static std::string generateDeleteResponse(Request & req, const Parser::Location & currentLoc, Parser::Server & currentSer, const std::string &fullPath);
-			response = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), "./docs" + req.getPath());
+			response = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()));
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;

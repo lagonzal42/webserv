@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>webserv</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			background-color: #f0f0f0;
+		}
+		header {
+			background-color: #333;
+			color: #fff;
+			padding: 20px;
+			text-align: center;
+		}
+		nav {
+			background-color: #444;
+			padding: 10px;
+			text-align: center;
+		}
+		nav a {
+			color: #fff;
+			text-decoration: none;
+			padding: 10px;
+		}
+		nav a:hover {
+			background-color: #555;
+		}
+		section {
+			padding: 20px;
+		}
+		footer {
+			background-color: #333;
+			color: #fff;
+			padding: 10px;
+			text-align: center;
+			position: fixed;
+			bottom: 0;
+			width: 100%;
+		}
+    </style>
+</head>
+<body>
+	<header>
+		<h1>Ezabatu fitxategia</h1>
+	</header>
+	<nav>
+		<a href="../index.html">Return to Home</a>
+	</nav>
+	<section>
+		<h2>About This Page</h2>
+		<p>Select a file from the <code>./docs/upload/</code> directory to delete.</p>
+	</section>
+	<section>
+		<form id="deleteForm">
+			<label for="file">Enter filename to delete:</label>
+			<input type="text" id="file" name="filename" placeholder="example.txt" required>
+			<input type="button" value="Delete" onclick="deleteFile()">
+		</form>
+		<p id="response"></p>
+	</section>
+	<footer>
+		<p>&copy; 2024 webserv. All rights reserved.</p>
+	</footer>
+
+	<script>
+		async function deleteFile() {
+			const filename = document.getElementById('file').value;
+			const responseElement = document.getElementById('response');
+	
+			if (!filename) {
+				responseElement.textContent = 'Please enter a filename.';
+				return;
+			}
+	
+			try {
+				const response = await fetch('/upload/' + encodeURIComponent(filename), {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				});
+	
+				if (response.ok) {
+					// If the response is successful, redirect to a success page
+					window.location.href = './success_delete.html';
+				} else {
+					// If the response is not successful, display an error message
+					const result = await response.text();
+					document.body.innerHTML = result;
+				}
+			} catch (error) {
+				responseElement.textContent = 'Error: ' + error.message;
+			}
+		}
+	</script>
+</body>
+</html>

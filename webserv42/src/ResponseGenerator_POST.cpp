@@ -1,4 +1,4 @@
-#include "ResponseGenerator_GET.hpp"
+#include "ResponseGenerator_POST.hpp"
 #include "ResponseGenerator_DELETE.hpp"
 #include <dirent.h>
 #include <algorithm>
@@ -49,7 +49,7 @@
 
 /*=============================*/
 
-std::string ResponseGenerator::parsePath(std::string servPath, std::string locPath, std::string reqPath)
+std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string locPath, std::string reqPath)
 {
 	bool lastSlash;
 	bool firstSlash;
@@ -72,7 +72,6 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 		if (!pathPart.empty())
 			pathPartsVec.push_back(pathPart);
 	}
-
 
 	std::cout << BLUE;
 	for (size_t i = 0; i < pathPartsVec.size(); i++)
@@ -107,50 +106,38 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 	return (cleanPath);
 }
 
-std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
-
 	// Use envp in case of CGI like html form
 	debug(RED);
-	debug("ResponseGenerator::generateGetResponse");
+	debug("ResponseGeneratorPOST::generatePostResponse");
 	debug("location name:");
 	debug(currentLoc.name);
 	debug(RESET);
 
 	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
-	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, "", req.getPath());
+	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
 	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << "Method not allowed" << std::endl;
 		//return (NOT_IMPLEMENTED);
-		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
-	}
-	else if (currentLoc.name == "/redir/")
-	{
-		std::cout << "Processing Redirection GET request" << std::endl;
-		//return (ResponseGenerator::getRedirResponse(??));
-		return (NOT_IMPLEMENTED);
+		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
 	else if (currentLoc.name == "/cgi/")
 	{
-		std::cout << "Processing CGI GET request" << std::endl;
-		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
+		std::cout << "Processing CGI POST request" << std::endl;
+		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
-	// else if (currentLoc.autoindex && req.getPath()[req.getPath().length() - 1] == '/')
-	// {
-	// 	std::cout << "Processing autoindex GET request" << std::endl;
-	// 	return (ResponseGenerator::getAutoindexResponse(currentServ, cleanPath));
-	// }
 	else
 	{
-		std::cout << "Processing file GET request" << std::endl;
-		return (ResponseGenerator::getFileResponse(currentLoc, currentServ, cleanPath));
+		std::cout << "Processing file POST request" << std::endl;
+		return (ResponseGeneratorPOST::getFileResponse(currentLoc, currentServ, cleanPath));
 	}
 }
 
-std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
+std::string ResponseGeneratorPOST::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response;
 	std::stringstream responseStatus;
@@ -169,7 +156,7 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open" << cleanPath << std::endl;
-		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
 		//return (NOT_IMPLEMENTED);
 	}
 	debug("File opened");
@@ -185,40 +172,9 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	return ((response));
 }
 
-// std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
-// {
-// 	std::string response, responseHead, responseBody;
-// 	DIR* directory = opendir(cleanPath.c_str());
-// 	MimeDict* MimeDict = MimeDict::getMimeDict();
-//     std::map<std::string, std::string> mime = MimeDict->getMap();
-
-// 	if (directory == NULL)
-// 	{
-// 		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
-// 		//return (NOT_IMPLEMENTED);
-// 	}
-// 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
-// 	responseBody += "<html><head><title>Index of " + cleanPath + "</title></head>";
-// 	responseBody += "<body><h1>Index of " + cleanPath + "</h1>";
-
-// 	responseBody += "<ul>";
-// 	struct dirent	*file = readdir(directory);
-
-// 	while (file)
-// 	{
-// 		responseBody += "<li><a href=\"" + cleanPath + file->d_name + "\"" + file->d_name + "</a></li>";
-// 		file = readdir(directory);
-// 	}
-// 	closedir(directory);
-// 	std::stringstream ss;
-// 	ss << responseBody.size();
-// 	response = responseHead + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + responseBody;
-// 	return (response);
-// }
-
 // check here the data form html form
 // Use pipes to send info
-std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
@@ -240,7 +196,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	if (pipe(pipes) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
-		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 		//return (NOT_IMPLEMENTED);
 	}
 
@@ -279,7 +235,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		if (now - start != 0)
 		{
 			kill(id, SIGKILL);
-			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
+			return (ResponseGeneratorPOST::errorResponse(TIMEOUT, currentServ));
 		}
 		if (WIFEXITED(status))
 		{
@@ -287,7 +243,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 			if (WEXITSTATUS(status) != 0)
 			{
 				//std::cout << "Bad exited" << std::endl;
-				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
+				response = ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ);
 				//response = NOT_IMPLEMENTED;
 			}
 			else
@@ -304,7 +260,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 					{
 						//std::cout << "read failed" << std::endl;
 						close(pipes[0]);
-						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
+						response = ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 						return (response);
 						//response = NOT_IMPLEMENTED;
 					}
@@ -331,14 +287,13 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	}
 }
 
-std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
+std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Server& currentServ)
 {
 	std::stringstream	responseStatus;
 	std::string			fileName;
 
 	responseStatus << errorCode << " KO";
-	// fileName = currentServ.root + currentServ.error_pages.at(errorCode);
-	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
+	fileName = ResponseGeneratorPOST::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
 	std::ifstream file(fileName.c_str());
 	if (!file.is_open())
@@ -369,14 +324,4 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	std::cout << BLUE << response << RESET <<std::endl;
 
 	return ((response));
-	// std::string response;
-
-	// response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	// std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	// file.close();
-	// std::stringstream contentSize;
-	// contentSize << content.size();
-	// std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
-	// response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
-	// return (response);
 }

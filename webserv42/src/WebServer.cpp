@@ -12,6 +12,7 @@
 #include "WebServer.hpp"
 #include "Parser.hpp"
 #include "ResponseGenerator_DELETE.hpp"
+#include "ResponseGenerator_POST.hpp"
 #include <signal.h>
 #ifndef METHOD_NOT_IMPLEMENTED
 # define METHOD_NOT_IMPLEMENTED	501
@@ -234,7 +235,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 		case(POST):
 			std::cout << "Post Response" << std::endl;
 			// HERE THE POST RESPONSE
-			// response = ResponseGenerator::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
+			response = ResponseGeneratorPOST::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;

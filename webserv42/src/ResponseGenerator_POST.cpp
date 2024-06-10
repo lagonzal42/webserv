@@ -122,7 +122,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
-		std::cerr << "Method not allowed" << std::endl;
+		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
 		//return (NOT_IMPLEMENTED);
 		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
@@ -140,6 +140,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 		std::cout << "Processing chunked POST request" << std::endl;
 		//return (ResponseGeneratorPOST::getFileResponse(currentLoc, currentServ, cleanPath));
 	}
+	return ("END OF POST RESPONSE GENERATION");
 }
 
 // this only return a html ¿¿??

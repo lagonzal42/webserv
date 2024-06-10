@@ -8,7 +8,7 @@ INCS		:= inc
 #------------------------------------------------#
 #   FILES                                        #
 #------------------------------------------------#
-MAIN		= main2 Parser Request Utils WebServer ResponseGenerator_GET ResponseGenerator_DELETE MimeDict 
+MAIN		= main2 Parser Request Utils WebServer ResponseGenerator_GET ResponseGenerator_POST ResponseGenerator_DELETE MimeDict 
 
 
 SRC_DIR		:= src

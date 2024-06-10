@@ -1,3 +1,4 @@
+#include "ResponseGenerator_GET.hpp"
 #include "ResponseGenerator_POST.hpp"
 #include "ResponseGenerator_DELETE.hpp"
 #include <dirent.h>
@@ -125,18 +126,23 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 		//return (NOT_IMPLEMENTED);
 		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
 	}
-	else if (currentLoc.name == "/cgi/")
+	else if (currentLoc.name == "/upload/")
 	{
-		std::cout << "Processing CGI POST request" << std::endl;
+		// this manage normal uploads
+		// need diference between formats, png and txt are normal upload, and executable are cgi
+		std::cout << "Processing upload POST request" << std::endl;
 		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
-	else
+	else if (req.getEncoding() == "chunked")
 	{
-		std::cout << "Processing file POST request" << std::endl;
-		return (ResponseGeneratorPOST::getFileResponse(currentLoc, currentServ, cleanPath));
+		// this manage chunked uploads
+		std::cout << MAGENTA << "Request encode is: " << req.getEncoding() << RESET << std::endl;
+		std::cout << "Processing chunked POST request" << std::endl;
+		//return (ResponseGeneratorPOST::getFileResponse(currentLoc, currentServ, cleanPath));
 	}
 }
 
+// this only return a html ¿¿??
 std::string ResponseGeneratorPOST::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response;

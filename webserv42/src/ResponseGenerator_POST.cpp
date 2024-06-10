@@ -123,66 +123,58 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
-		//return (NOT_IMPLEMENTED);
-		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
+		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
 	else if (currentLoc.name == "/upload/")
 	{
-		// this manage normal uploads
-		// need diference between formats, png and txt are normal upload, and executable are cgi
 		std::cout << "Processing upload POST request" << std::endl;
-		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
+		return (ResponseGeneratorPOST::postResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
-	else if (req.getEncoding() == "chunked")
+	else
+	{
+		std::cerr << "Location not found" << std::endl;
+		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
+	}
+}
+
+std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
+{
+	// Extrae la extensión del archivo
+    std::string extension = cleanPath.substr(cleanPath.find_last_of("."));
+
+    // Obtén el mapa de MimeDict
+    std::map<std::string, std::string> mimeMap = MimeDict::getMimeDict()->getMap();
+
+    // Busca en el mapa la extensión
+    std::map<std::string, std::string>::iterator it = mimeMap.find(extension);
+
+	if (it != mimeMap.end()) {
+        // La extensión se encontró en el mapa
+        std::string mimeType = it->second;
+
+		if (mimeType == "application/x-sh") // check if it's and executable
+		{
+			return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
+		}
+	}
+	else if (req.getEncoding() == "chunked") // maybe move it to postCGIresponse
 	{
 		// this manage chunked uploads
 		std::cout << MAGENTA << "Request encode is: " << req.getEncoding() << RESET << std::endl;
 		std::cout << "Processing chunked POST request" << std::endl;
-		//return (ResponseGeneratorPOST::getFileResponse(currentLoc, currentServ, cleanPath));
+		// return (ResponseGeneratorPOST::postChunkedResponse(//no se)); // not done yet
 	}
-	return ("END OF POST RESPONSE GENERATION");
-}
-
-// this only return a html ¿¿??
-std::string ResponseGeneratorPOST::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
-{
-	std::string response;
-	std::stringstream responseStatus;
-
-	if (cleanPath[cleanPath.length() - 1] == '/')
+	else
 	{
-		if (!currentLoc.index.empty())
-			cleanPath += currentLoc.index;
-		else
-			cleanPath += "index.html";
-
+		// this manage normal uploads
 	}
-	responseStatus << 200 << " OK";
-	debug("gona open " + cleanPath);
-	std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
-	{
-		std::cerr << "Failed to open" << cleanPath << std::endl;
-		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
-		//return (NOT_IMPLEMENTED);
-	}
-	debug("File opened");
-	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	file.close();
-	std::stringstream ss;
-	ss << content.size();
-
-	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	
-	std::cout << BLUE << response << RESET <<std::endl;
-
-	return ((response));
 }
 
 // check here the data form html form
 // Use pipes to send info
 std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
+	// Redo, this code is from GET
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
 		if (!currentLoc.index.empty())

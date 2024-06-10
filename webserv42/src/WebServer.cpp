@@ -125,11 +125,13 @@ void	WebServer::initializeEnvp(char **originalEnvp)
 
 void	WebServer::serverLoop(void)
 {
+	// int counter = 0;
 	while (!stopSignal)
 	{
+		// std::cout << LGREEN "counter: " << counter << RESET << std::endl;
 		int events = poll(&pollFDS[0], pollFDS.size(), 5000);
 
-		if (events != 0)
+		if (events > 0)
 		{
 			for (size_t i = 0; i < pollFDS.size(); i++)
 			{
@@ -155,16 +157,30 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					std::string response = buildResponse(cliVectorPos);
-					sendResponse(cliVectorPos , response);
-					pollFDS[i].events = POLLIN;
-					//cleanVectors(cliVectorPos);
+					// sendResponse(cliVectorPos , response);
+					// pollFDS[i].events = POLLIN;
+					if (!response.empty())
+					{
+						sendResponse(cliVectorPos , response);
+						pollFDS[i].events = POLLIN;
+					}
+					else
+					{
+
+						cleanVectors(cliVectorPos);
+					}
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
-		else
+		else if (events == 0)
 		{
 			std::cout << "No event detected" << std::endl;
 		}
+		else // Maybe it's necessarry?
+		{
+			;//poll error
+		}
+		// counter++;
 	} // while (!stopSignal)
 }
 
@@ -251,8 +267,10 @@ std::string WebServer::buildResponse(int cliVecPos)
 
 void WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
-	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0)== -1)
+	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) == -1)
 		std::cerr << "Send failed" << std::endl;
+	else
+		std::cout << GREEN "Response sent successfully" RESET << std::endl;
 	
 }
 

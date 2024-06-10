@@ -42,6 +42,8 @@ class Request{
 		std::string	getHost(void) const;
 		std::string	getPort(void) const;
 		std::string	getEncoding(void) const;
+		// added getBody to test
+		std::string	getBody(void) const;
 		bool		getConection(void) const;
 
 		void		print(void) const;

@@ -1,5 +1,6 @@
 
 #include "Request.hpp"
+#include "colors.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -22,6 +23,9 @@ int Request::readRequest(int client_socket)
 	char buffer[BUFFER_SIZE] = {0};
 	int valread = BUFFER_SIZE;
 	std::string requestStr = "";
+	_method = "";
+	_path = "";
+	_version = "";
 
 	while (BUFFER_SIZE == valread)
 	{
@@ -38,6 +42,9 @@ int Request::readRequest(int client_socket)
 		}
 	}
 
+	std::cout << YELLOW << "FULL Request: " << std::endl;
+	std::cout << requestStr <<  std::endl;	
+
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
 		_body = requestStr.substr(pos + 4);
@@ -46,6 +53,7 @@ int Request::readRequest(int client_socket)
 	std::string line;
 	std::string title;
 
+	std::cout << "_body: " << _body << RESET << std::endl;	
 
 	// separates the request first line and separates it by spaces
 	std::getline(reqStream, line);
@@ -102,6 +110,9 @@ std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
+//
+std::string	Request::getBody(void) const {return _body;}
+//
 bool		Request::getConection(void) const {return _keepAlive;}
 
 

@@ -102,6 +102,7 @@ std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
+std::string	Request::getBody(void) const {return _body;}
 bool		Request::getConection(void) const {return _keepAlive;}
 
 

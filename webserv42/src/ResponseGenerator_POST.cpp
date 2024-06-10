@@ -166,8 +166,26 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 	}
 	else
 	{
-		// this manage normal uploads
+		// Extrae el cuerpo de la solicitud POST
+        std::string requestBody = req.getBody();
+
+        // Obtén la ruta de carga de la configuración
+        std::string uploadPath = currentLoc.upload_path; // Asume que tienes un método getUploadPath() en la clase Location
+
+        // Combina la ruta de carga con el nombre del archivo
+        std::string filePath = uploadPath + "/" + cleanPath;
+
+        // Guarda el cuerpo de la solicitud en un archivo
+		std::ofstream ofs(filePath.c_str(), std::ios::binary);
+		ofs << requestBody;
+		ofs.close();
+
+        std::cout << "Saved file: " << filePath << std::endl;
+		
+		// std::cerr << "NOT DONE YET" << std::endl;
+		// return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
+	return ("END OF FUNCTION");
 }
 
 // check here the data form html form

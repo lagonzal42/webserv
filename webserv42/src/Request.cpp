@@ -47,7 +47,7 @@ int Request::readRequest(int client_socket)
 
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
-		_body = requestStr.substr(pos + 4);
+		_body += requestStr.substr(pos + 4);
 
 	std::istringstream reqStream(requestStr);
 	std::string line;

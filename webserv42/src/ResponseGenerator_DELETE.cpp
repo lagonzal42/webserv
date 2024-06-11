@@ -1,5 +1,6 @@
 #include "ResponseGenerator_DELETE.hpp"
 #include "ResponseGenerator_GET.hpp"
+#include "Utils.hpp"
 #include <cstdio>   // for remove
 #include <algorithm>
 
@@ -45,25 +46,25 @@ std::string ResponseGeneratorDELETE::generateHttpResponse(const std::string &sta
 std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer)
 {
 	std::string response;
+	// static std::string exHeader;
 	std::string	fullPath = ResponseGenerator::parsePath(currentSer.root, "", req.getPath());
 
 // test print
 	std::cout << YELLOW "fullPath: " << fullPath << RESET << std::endl;
 	std::cout << "req method: " << req.getMethod() << std::endl;
 	std::cout << "location method: ";
+// test print
 
 	for (std::vector<std::string>::const_iterator it = currentLoc.methods.begin(); it != currentLoc.methods.end(); ++it)
 		std::cout << *it << " ";
 	std::cout << std::endl;
-// test print
 
 	// Check if the request method is allowed in config
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) != currentLoc.methods.end())
 	{
-		size_t last_slash = fullPath.find_last_of('/');
-		if (last_slash != std::string::npos)
+		// Check if the path is for a file
+		if (Utils::pathIsFile(fullPath))
 		{
-			std::cout << GREEN "Try to remove: " << fullPath << RESET << std::endl;
 			if (remove(fullPath.c_str()) == 0)
 			{
 				std::cout << CYAN "removed successfully" RESET << std::endl;
@@ -71,14 +72,14 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			}
 			else
 			{
-				std::cout << RED "failed to remove file" RESET << std::endl;
-				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentSer);
+				std::cout << RED "failed to remove file: forbiden" RESET << std::endl;
+				response = ResponseGenerator::errorResponse(FORBIDEN, currentSer);
 			}
 		}
 		else
 		{
-			std::cerr << RED "Bad request" RESET << std::endl;
-			response = ResponseGenerator::errorResponse(BAD_REQUEST, currentSer);
+			std::cout << RED "failed to remove file: not found" RESET << std::endl;
+			response = ResponseGenerator::errorResponse(NOT_FOUND, currentSer);
 		}
 	}
 	else

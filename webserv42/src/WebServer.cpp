@@ -166,7 +166,6 @@ void	WebServer::serverLoop(void)
 					}
 					else
 					{
-
 						cleanVectors(cliVectorPos);
 					}
 				}

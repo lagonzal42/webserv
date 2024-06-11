@@ -525,6 +525,7 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 	// std::cout << BLUE << "Im in the getCurLocation! " RESET;
 	// std::cout << "path: " << path << " port: " << port << std::endl;
 	std::string parentPath = getParentDirectory(path);
+	// std::cout << LGREEN "parentPath: " RESET << parentPath << std::endl;
 	const Parser::Server &curServer = this->getServer(port);
 	std::vector<Parser::Location>::const_iterator location_iter;
 
@@ -555,7 +556,7 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 		if (parentPath.find(location.root) == 0)
 		{
 			size_t matchLength = location.root.length();
-			if (matchLength > longestMatchLength && path[location.root.length()] == '/')
+			if (matchLength > longestMatchLength/* && path[location.root.length()] == '/'*/)
 			{
 				longestMatchLength = matchLength;
 				bestMatch = &location;

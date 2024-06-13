@@ -127,7 +127,7 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 	else if (currentLoc.name == "/redir/")
 	{
 		std::cout << "Processing Redirection GET request" << std::endl;
-		return (ResponseGenerator::getRedirResponse(currentServ, currentLoc.redirect));
+		return (ResponseGenerator::getRedirResponse(currentLoc.redirect));
 	}
 	else if (currentLoc.name == "/cgi/")
 	{
@@ -178,7 +178,7 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	return ((response));
 }
 
-std::string	ResponseGenerator::getRedirResponse(const Parser::Server& currentServ, const std::string& redir)
+std::string	ResponseGenerator::getRedirResponse(const std::string& redir)
 {
 	std::string response;
 	std::stringstream responseStatus;

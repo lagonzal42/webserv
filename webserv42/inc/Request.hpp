@@ -27,6 +27,7 @@ class Request{
 		std::string	_encoding;
 		std::string _queryString;
 		std::string _body;
+		size_t		_contentLength;
 		
 		bool	_keepAlive;
 

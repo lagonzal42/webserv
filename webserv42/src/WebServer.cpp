@@ -244,7 +244,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;
-			//response = ResponseGenerator::errorResponse(config, METHOD_NOT_IMPLEMENTED);
+			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED, config.getServer(req.getPort()));
 			break;
 	}
 

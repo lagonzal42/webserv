@@ -19,6 +19,7 @@ class Utils
 			static std::string	extractNumbers(std::string const & str);
 			static int	obtainIntFromStr(std::string const & num);
 			static bool fileExists(const std::string &path);
+			static int pathIsFile( const std::string& path );
 
 	// --- Getter functions --- //
 

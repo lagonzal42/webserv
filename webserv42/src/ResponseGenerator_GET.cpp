@@ -122,14 +122,12 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << "Method not allowed" << std::endl;
-		//return (NOT_IMPLEMENTED);
-		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ)); //Here I need the full server config, not only the location in order to have access to the error pages
+		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
 	else if (currentLoc.name == "/redir/")
 	{
 		std::cout << "Processing Redirection GET request" << std::endl;
-		//return (ResponseGenerator::getRedirResponse(??));
-		return (NOT_IMPLEMENTED);
+		return (ResponseGenerator::getRedirResponse(currentServ, currentLoc.redirect));
 	}
 	else if (currentLoc.name == "/cgi/")
 	{
@@ -162,15 +160,12 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 
 	}
 	responseStatus << 200 << " OK";
-	debug("gona open " + cleanPath);
 	std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open" << cleanPath << std::endl;
 		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
-		//return (NOT_IMPLEMENTED);
 	}
-	debug("File opened");
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	std::stringstream ss;
@@ -183,6 +178,17 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	return ((response));
 }
 
+std::string	ResponseGenerator::getRedirResponse(const Parser::Server& currentServ, const std::string& redir)
+{
+	std::string response;
+	std::stringstream responseStatus;
+
+	responseStatus << PERMANENT_REDIRECT << " OK";
+	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: 0" + "\r\nLocation: " + redir + "\r\n\r\n";
+
+	return (response);
+}
+
 std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response, responseHead, responseBody;
@@ -191,10 +197,7 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& curren
     std::map<std::string, std::string> mime = MimeDict->getMap();
 
 	if (directory == NULL)
-	{
 		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
-		//return (NOT_IMPLEMENTED);
-	}
 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
 	responseBody += "<html><head><title>Index of " + cleanPath + "</title></head>";
 	responseBody += "<body><h1>Index of " + cleanPath + "</h1>";
@@ -225,7 +228,6 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	std::string queryString = req.getQueryString();
 	if (!queryString.empty())
 	{
-		//here we need the envp in order to modify it and add the query string
 		envp.pop_back();
 		std::string qs = "QUERY_STRING=" + req.getQueryString(); 
 		envp.push_back(const_cast<char *>(qs.c_str()));
@@ -237,7 +239,6 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
 		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
-		//return (NOT_IMPLEMENTED);
 	}
 
 	int id = fork();
@@ -267,28 +268,21 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		time_t now = std::time(NULL);
 		while (now - start < 1)
 		{
-			//std::cout << "Waiting for child process" << std::endl;
 			now = std::time(NULL);
 		}
 
 		waitpid(id, &status, WNOHANG);
-		if (now - start != 0)
+		if (now - start != 0) //timeout reached
 		{
 			kill(id, SIGKILL);
 			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
 		}
-		if (WIFEXITED(status))
+		if (WIFEXITED(status)) //child exited
 		{
-			//std::cout << "Exited child process" << std::endl;
-			if (WEXITSTATUS(status) != 0)
-			{
-				//std::cout << "Bad exited" << std::endl;
+			if (WEXITSTATUS(status) != 0) //error exit status
 				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
-				//response = NOT_IMPLEMENTED;
-			}
-			else
+			else //normal exit status (0)
 			{
-				//std::cout << "well exited" << std::endl;
 				char buffer[BUFFER_SIZE];
 				int readed = BUFFER_SIZE;
 
@@ -298,11 +292,9 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 					readed = read(pipes[0], buffer, BUFFER_SIZE);
 					if (readed < 0)
 					{
-						//std::cout << "read failed" << std::endl;
 						close(pipes[0]);
 						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 						return (response);
-						//response = NOT_IMPLEMENTED;
 					}
 					else
 					{
@@ -311,16 +303,11 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 					}
 				}
 				close(pipes[0]);
-				//std::cout << "Response: " << content;
 
 				std::stringstream ss;
 				ss << content.size();
-
-				//std::cout << RED << "content readed from pipe is |" << content << "|" << RESET << std::endl;;
-
-				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				//std::cout << "response str is: " << responseStr << std::endl;
-				return(responseStr);
+				std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+				return(response);
 			}
 		}
 		return (response);
@@ -333,7 +320,6 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	std::string			fileName;
 
 	responseStatus << errorCode << " KO";
-	// fileName = currentServ.root + currentServ.error_pages.at(errorCode);
 	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
 	std::ifstream file(fileName.c_str());
@@ -353,7 +339,6 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 			return (response);
 		}
 	}
-	debug("File opened");
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	std::stringstream ss;
@@ -362,17 +347,5 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
-	std::cout << BLUE << response << RESET <<std::endl;
-
 	return ((response));
-	// std::string response;
-
-	// response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	// std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	// file.close();
-	// std::stringstream contentSize;
-	// contentSize << content.size();
-	// std::string response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + MimeDict::getMimeDict()->getMap()[".html"];
-	// response += "\r\nContent-Length: " + contentSize.str() + "\r\n\r\n" + content;
-	// return (response);
 }

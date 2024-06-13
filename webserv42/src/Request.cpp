@@ -6,9 +6,10 @@
 #include <iostream>
 #include <sstream>
 #include "colors.h"
+#include <cstdio>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 10000
+# define BUFFER_SIZE 1000
 #endif
 
 Request::Request(void)
@@ -44,7 +45,10 @@ int Request::readRequest(int client_socket)
 
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
-		_body += requestStr.substr(pos + 4);
+	{
+		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
+		_body.append(requestStr.substr(pos + 4));
+	}
 
 	std::istringstream reqStream(requestStr);
 	std::string line;
@@ -105,7 +109,7 @@ int Request::readRequest(int client_socket)
 		}
 	} //end of while(std::getline)
 
-	std::cout << "Body length: " <<_body.length() << std::endl;
+	//std::cout << "Body length: " <<_body.length() << std::endl;
 	return 0;
 }
 

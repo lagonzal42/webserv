@@ -29,6 +29,7 @@ class Request{
 		std::string _body;
 		size_t		_contentLength;
 		
+		
 		bool	_keepAlive;
 
 	public:

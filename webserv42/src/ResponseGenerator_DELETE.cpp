@@ -1,5 +1,6 @@
 #include "ResponseGenerator_DELETE.hpp"
 #include "ResponseGenerator_GET.hpp"
+#include "Utils.hpp"
 #include <cstdio>   // for remove
 #include <algorithm>
 
@@ -42,12 +43,17 @@ std::string ResponseGeneratorDELETE::generateHttpResponse(const std::string &sta
 	return oss.str();
 }
 
-std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer, const std::string &fullPath)
+std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer)
 {
 	std::string response;
+	// static std::string exHeader;
+	std::string	fullPath = ResponseGenerator::parsePath(currentSer.root, "", req.getPath());
 
+// test print
+	std::cout << YELLOW "fullPath: " << fullPath << RESET << std::endl;
 	std::cout << "req method: " << req.getMethod() << std::endl;
-	std::cout << "location method: " << std::endl;
+	std::cout << "location method: ";
+// test print
 
 	for (std::vector<std::string>::const_iterator it = currentLoc.methods.begin(); it != currentLoc.methods.end(); ++it)
 		std::cout << *it << " ";
@@ -56,8 +62,8 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 	// Check if the request method is allowed in config
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) != currentLoc.methods.end())
 	{
-		size_t last_slash = fullPath.find_last_of('/');
-		if (last_slash != std::string::npos)
+		// Check if the path is for a file
+		if (Utils::pathIsFile(fullPath))
 		{
 			if (remove(fullPath.c_str()) == 0)
 			{
@@ -66,22 +72,19 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			}
 			else
 			{
-				std::cout << RED "failed to remove file" RESET << std::endl;
-				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentSer);
-				// response = generateHttpResponse("500 Internal Server Error", "Internal Server Error", "Failed to delete the requested file on the server.");
+				std::cout << RED "failed to remove file: forbiden" RESET << std::endl;
+				response = ResponseGenerator::errorResponse(FORBIDEN, currentSer);
 			}
 		}
 		else
 		{
-			std::cerr << RED "Bad request" RESET << std::endl;
-			// response = generateHttpResponse("400 Bad Request", "Bad Request", "Invalid item ID.");
-			response = ResponseGenerator::errorResponse(BAD_REQUEST, currentSer);
+			std::cout << RED "failed to remove file: not found" RESET << std::endl;
+			response = ResponseGenerator::errorResponse(NOT_FOUND, currentSer);
 		}
 	}
 	else
 	{
 		std::cerr << RED "Method not allowed" RESET << std::endl;
-		// response = generateHttpResponse("405 Method Not Allowed", "Method Not Allowed", "The requested Method is not allowed.");
 		response = ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentSer);
 	}
 	std::cout << response << std::endl;

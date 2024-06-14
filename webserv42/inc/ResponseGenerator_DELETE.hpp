@@ -58,7 +58,7 @@ class ResponseGeneratorDELETE
 			ResponseGeneratorDELETE & operator=( ResponseGeneratorDELETE const & src );
 	// --- Getter functions --- //
 			// I don't know why does work well with std::string, and not with char *
-			static std::string generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer, const std::string &fullPath);
+			static std::string generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const Parser::Server & currentSer);
 			static std::string generateHttpResponse(const std::string &status, const std::string &title, const std::string &message);
 
 			// static const char	* generateDeleteResponse(Request & req, const Parser::Location & currentLoc, const std::string &fullPath);

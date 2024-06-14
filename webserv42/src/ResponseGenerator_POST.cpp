@@ -120,6 +120,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
 	std::cout << "Clean path is " << cleanPath << std::endl;
 
+	std::cout << MAGENTA << req.getMethod() << RESET << std::endl; // delete this line
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
@@ -169,11 +170,8 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 		// Extrae el cuerpo de la solicitud POST
         std::string requestBody = req.getBody();
 
-        // Obtén la ruta de carga de la configuración
-        std::string uploadPath = currentLoc.upload_path; // Asume que tienes un método getUploadPath() en la clase Location
-
         // Combina la ruta de carga con el nombre del archivo
-        std::string filePath = uploadPath + "/" + cleanPath;
+        std::string filePath = cleanPath;
 
         // Guarda el cuerpo de la solicitud en un archivo
 		std::ofstream ofs(filePath.c_str(), std::ios::binary);
@@ -181,9 +179,6 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 		ofs.close();
 
         std::cout << "Saved file: " << filePath << std::endl;
-		
-		// std::cerr << "NOT DONE YET" << std::endl;
-		// return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
 	return ("END OF FUNCTION");
 }

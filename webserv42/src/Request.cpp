@@ -24,14 +24,7 @@ int Request::readRequest(int client_socket)
 {
 	char buffer[BUFFER_SIZE + 1] = {0};
 	int valread = BUFFER_SIZE;
-<<<<<<< HEAD
-	std::string requestStr = "";
-	_method = "";
-	_path = "";
-	_version = "";
-=======
 	std::string requestStr;
->>>>>>> larra
 
 	while (BUFFER_SIZE == valread)
 	{
@@ -49,12 +42,7 @@ int Request::readRequest(int client_socket)
 		}
 	}
 
-<<<<<<< HEAD
-	std::cout << YELLOW << "FULL Request: " << std::endl;
-	std::cout << requestStr <<  std::endl;	
-=======
 	std::cout << RED << requestStr << RESET <<  std::endl;
->>>>>>> larra
 
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
@@ -134,13 +122,7 @@ std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
-<<<<<<< HEAD
-//
 std::string	Request::getBody(void) const {return _body;}
-//
-=======
-std::string	Request::getBody(void) const {return _body;}
->>>>>>> larra
 bool		Request::getConection(void) const {return _keepAlive;}
 
 

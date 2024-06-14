@@ -158,23 +158,9 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					std::string response = buildResponse(cliVectorPos);
-<<<<<<< HEAD
-					// sendResponse(cliVectorPos , response);
-					// pollFDS[i].events = POLLIN;
-					if (!response.empty())
-					{
-						sendResponse(cliVectorPos , response);
-						pollFDS[i].events = POLLIN;
-					}
-					else
-					{
-						cleanVectors(cliVectorPos);
-					}
-=======
 					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
 					cleanVectors(cliVectorPos);
->>>>>>> larra
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -277,12 +263,9 @@ void WebServer::sendResponse(int vectorPos, std::string& response) //still imple
 {
 	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) == -1)
 		std::cerr << "Send failed" << std::endl;
-<<<<<<< HEAD
 	else
 		std::cout << GREEN "Response sent successfully" RESET << std::endl;
 	
-=======
->>>>>>> larra
 }
 
 void	WebServer::cleanVectors(int vectorPos)

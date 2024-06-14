@@ -6,13 +6,15 @@
 #include <fcntl.h>
 #include <iostream>
 #include <sstream>
+#include "colors.h"
+#include <cstdio>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 10000
+# define BUFFER_SIZE 1000
 #endif
 
 Request::Request(void)
-: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _queryString(""), _body(""), _keepAlive(false)
+: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _queryString(""), _body(""), _contentLength(0), _keepAlive(false)
 {}
 
 Request::~Request(void)
@@ -20,16 +22,21 @@ Request::~Request(void)
 
 int Request::readRequest(int client_socket)
 {
-	char buffer[BUFFER_SIZE] = {0};
+	char buffer[BUFFER_SIZE + 1] = {0};
 	int valread = BUFFER_SIZE;
+<<<<<<< HEAD
 	std::string requestStr = "";
 	_method = "";
 	_path = "";
 	_version = "";
+=======
+	std::string requestStr;
+>>>>>>> larra
 
 	while (BUFFER_SIZE == valread)
 	{
 		valread = read(client_socket, buffer, BUFFER_SIZE);
+		std::cout << GREEN << valread << RESET << std::endl;
 		if (valread < 0)
 		{
 			std::cerr << "Error on read" << std::endl;
@@ -38,16 +45,23 @@ int Request::readRequest(int client_socket)
 		}
 		else
 		{
-			requestStr += std::string(buffer);
+			requestStr.append(std::string(buffer, valread));
 		}
 	}
 
+<<<<<<< HEAD
 	std::cout << YELLOW << "FULL Request: " << std::endl;
 	std::cout << requestStr <<  std::endl;	
+=======
+	std::cout << RED << requestStr << RESET <<  std::endl;
+>>>>>>> larra
 
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
-		_body += requestStr.substr(pos + 4);
+	{
+		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
+		_body.append(requestStr.substr(pos + 4));
+	}
 
 	std::istringstream reqStream(requestStr);
 	std::string line;
@@ -99,7 +113,17 @@ int Request::readRequest(int client_socket)
 			_encoding = encoding;
 			//break; //As we dont need more info
 		}
+		else if (title == "Content-Length")
+		{
+			std::string contentLengthStr;
+			std::getline(line_ss, contentLengthStr);
+			std::stringstream intss;
+			intss << contentLengthStr;
+			intss >> _contentLength;
+		}
 	} //end of while(std::getline)
+
+	//std::cout << "Body length: " <<_body.length() << std::endl;
 	return 0;
 }
 
@@ -110,9 +134,13 @@ std::string	Request::getPath(void) const {return _path;}
 std::string	Request::getHost(void) const {return _host;}
 std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
+<<<<<<< HEAD
 //
 std::string	Request::getBody(void) const {return _body;}
 //
+=======
+std::string	Request::getBody(void) const {return _body;}
+>>>>>>> larra
 bool		Request::getConection(void) const {return _keepAlive;}
 
 
@@ -128,6 +156,7 @@ void	Request::print(void) const
 	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
 	std::cout << "Body: |" << _body << "\\" << std::endl;
+	std::cout << "Content-Length: " << _contentLength << std::endl;
 
 }
 

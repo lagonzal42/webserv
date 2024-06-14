@@ -8,7 +8,7 @@ INCS		:= inc
 #------------------------------------------------#
 #   FILES                                        #
 #------------------------------------------------#
-MAIN		= main2 Parser Request Utils WebServer ResponseGenerator_GET ResponseGenerator_DELETE MimeDict 
+MAIN		= main2 Parser Request Utils WebServer ResponseGenerator_GET ResponseGenerator_POST ResponseGenerator_DELETE MimeDict 
 
 
 SRC_DIR		:= src
@@ -22,7 +22,7 @@ OBJS		:= $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 DEPS		:= $(OBJS:.o=.d)
 
 CC			:= c++
-CFLAGS		:= -Wall -Wextra -Werror -std=c++98 -pedantic -g
+CFLAGS		:= -Wall -Wextra -Werror -std=c++98 -pedantic -g -fsanitize=leak
 CPPFLAGS	:= $(addprefix -I,$(INCS)) -MMD -MP
 LDFLAGS		:= $(addprefix -L,$(dir $(LIBS_TARGET)))
 LDLIBS		:= $(addprefix -l,$(LIBS))

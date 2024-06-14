@@ -1,4 +1,5 @@
 #include "ResponseGenerator_GET.hpp"
+#include "ResponseGenerator_POST.hpp"
 #include "ResponseGenerator_DELETE.hpp"
 #include <dirent.h>
 #include <algorithm>
@@ -49,7 +50,7 @@
 
 /*=============================*/
 
-std::string ResponseGenerator::parsePath(std::string servPath, std::string locPath, std::string reqPath)
+std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string locPath, std::string reqPath)
 {
 	bool lastSlash;
 	bool firstSlash;
@@ -72,7 +73,6 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 		if (!pathPart.empty())
 			pathPartsVec.push_back(pathPart);
 	}
-
 
 	std::cout << BLUE;
 	for (size_t i = 0; i < pathPartsVec.size(); i++)
@@ -107,118 +107,92 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 	return (cleanPath);
 }
 
-std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
+	// Use envp in case of CGI like html form
 	debug(RED);
-	debug("ResponseGenerator::generateGetResponse");
+	debug("ResponseGeneratorPOST::generatePostResponse");
 	debug("location name:");
 	debug(currentLoc.name);
 	debug(RESET);
 
 	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
-	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, "", req.getPath());
+	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
 	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
-		std::cerr << "Method not allowed" << std::endl;
-		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ));
+		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
+		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
-	else if (currentLoc.name == "/redir/")
+	else if (currentLoc.name == "/upload/")
 	{
-		std::cout << "Processing Redirection GET request" << std::endl;
-		return (ResponseGenerator::getRedirResponse(currentLoc.redirect));
-	}
-	else if (currentLoc.name == "/cgi/")
-	{
-		std::cout << "Processing CGI GET request" << std::endl;
-		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
-	}
-	else if (currentLoc.autoindex && req.getPath()[req.getPath().length() - 1] == '/')
-	{
-		std::cout << "Processing autoindex GET request" << std::endl;
-		return (ResponseGenerator::getAutoindexResponse(currentServ, cleanPath));
+		std::cout << "Processing upload POST request" << std::endl;
+		return (ResponseGeneratorPOST::postResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
 	else
 	{
-		std::cout << "Processing file GET request" << std::endl;
-		return (ResponseGenerator::getFileResponse(currentLoc, currentServ, cleanPath));
+		std::cerr << "Location not found" << std::endl;
+		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
 	}
 }
 
-std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
-	std::string response;
-	std::stringstream responseStatus;
+	// Extrae la extensión del archivo
+    std::string extension = cleanPath.substr(cleanPath.find_last_of("."));
 
-	if (cleanPath[cleanPath.length() - 1] == '/')
+    // Obtén el mapa de MimeDict
+    std::map<std::string, std::string> mimeMap = MimeDict::getMimeDict()->getMap();
+
+    // Busca en el mapa la extensión
+    std::map<std::string, std::string>::iterator it = mimeMap.find(extension);
+
+	if (it != mimeMap.end()) {
+        // La extensión se encontró en el mapa
+        std::string mimeType = it->second;
+
+		if (mimeType == "application/x-sh") // check if it's and executable
+		{
+			return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
+		}
+	}
+	else if (req.getEncoding() == "chunked") // maybe move it to postCGIresponse
 	{
-		if (!currentLoc.index.empty())
-			cleanPath += currentLoc.index;
-		else
-			cleanPath += "index.html";
-
+		// this manage chunked uploads
+		std::cout << MAGENTA << "Request encode is: " << req.getEncoding() << RESET << std::endl;
+		std::cout << "Processing chunked POST request" << std::endl;
+		// return (ResponseGeneratorPOST::postChunkedResponse(//no se)); // not done yet
 	}
-	responseStatus << 200 << " OK";
-	std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
+	else
 	{
-		std::cerr << "Failed to open" << cleanPath << std::endl;
-		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		// Extrae el cuerpo de la solicitud POST
+        std::string requestBody = req.getBody();
+
+        // Obtén la ruta de carga de la configuración
+        std::string uploadPath = currentLoc.upload_path; // Asume que tienes un método getUploadPath() en la clase Location
+
+        // Combina la ruta de carga con el nombre del archivo
+        std::string filePath = uploadPath + "/" + cleanPath;
+
+        // Guarda el cuerpo de la solicitud en un archivo
+		std::ofstream ofs(filePath.c_str(), std::ios::binary);
+		ofs << requestBody;
+		ofs.close();
+
+        std::cout << "Saved file: " << filePath << std::endl;
+		
+		// std::cerr << "NOT DONE YET" << std::endl;
+		// return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
-	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	file.close();
-	std::stringstream ss;
-	ss << content.size();
-
-	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	
-	std::cout << BLUE << response << RESET <<std::endl;
-
-	return ((response));
+	return ("END OF FUNCTION");
 }
 
-std::string	ResponseGenerator::getRedirResponse(const std::string& redir)
+// check here the data form html form
+// Use pipes to send info
+std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
-	std::string response;
-	std::stringstream responseStatus;
-
-	responseStatus << PERMANENT_REDIRECT << " OK";
-	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: 0" + "\r\nLocation: " + redir + "\r\n\r\n";
-
-	return (response);
-}
-
-std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
-{
-	std::string response, responseHead, responseBody;
-	DIR* directory = opendir(cleanPath.c_str());
-	MimeDict* MimeDict = MimeDict::getMimeDict();
-    std::map<std::string, std::string> mime = MimeDict->getMap();
-
-	if (directory == NULL)
-		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
-	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
-	responseBody += "<html><head><title>Index of " + cleanPath + "</title></head>";
-	responseBody += "<body><h1>Index of " + cleanPath + "</h1>";
-
-	responseBody += "<ul>";
-	struct dirent	*file = readdir(directory);
-
-	while (file)
-	{
-		responseBody += "<li><a href=\"" + cleanPath + file->d_name + "\"" + file->d_name + "</a></li>";
-		file = readdir(directory);
-	}
-	closedir(directory);
-	std::stringstream ss;
-	ss << responseBody.size();
-	response = responseHead + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + responseBody;
-	return (response);
-}
-
-std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
-{
+	// Redo, this code is from GET
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
 		if (!currentLoc.index.empty())
@@ -228,6 +202,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	std::string queryString = req.getQueryString();
 	if (!queryString.empty())
 	{
+		//here we need the envp in order to modify it and add the query string
 		envp.pop_back();
 		std::string qs = "QUERY_STRING=" + req.getQueryString(); 
 		envp.push_back(const_cast<char *>(qs.c_str()));
@@ -238,7 +213,8 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 	if (pipe(pipes) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
-		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		//return (NOT_IMPLEMENTED);
 	}
 
 	int id = fork();
@@ -268,21 +244,28 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		time_t now = std::time(NULL);
 		while (now - start < 1)
 		{
+			//std::cout << "Waiting for child process" << std::endl;
 			now = std::time(NULL);
 		}
 
 		waitpid(id, &status, WNOHANG);
-		if (now - start != 0) //timeout reached
+		if (now - start != 0)
 		{
 			kill(id, SIGKILL);
-			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
+			return (ResponseGeneratorPOST::errorResponse(TIMEOUT, currentServ));
 		}
-		if (WIFEXITED(status)) //child exited
+		if (WIFEXITED(status))
 		{
-			if (WEXITSTATUS(status) != 0) //error exit status
-				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
-			else //normal exit status (0)
+			//std::cout << "Exited child process" << std::endl;
+			if (WEXITSTATUS(status) != 0)
 			{
+				//std::cout << "Bad exited" << std::endl;
+				response = ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ);
+				//response = NOT_IMPLEMENTED;
+			}
+			else
+			{
+				//std::cout << "well exited" << std::endl;
 				char buffer[BUFFER_SIZE];
 				int readed = BUFFER_SIZE;
 
@@ -292,9 +275,11 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 					readed = read(pipes[0], buffer, BUFFER_SIZE);
 					if (readed < 0)
 					{
+						//std::cout << "read failed" << std::endl;
 						close(pipes[0]);
-						response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
+						response = ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 						return (response);
+						//response = NOT_IMPLEMENTED;
 					}
 					else
 					{
@@ -303,24 +288,29 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 					}
 				}
 				close(pipes[0]);
+				//std::cout << "Response: " << content;
 
 				std::stringstream ss;
 				ss << content.size();
-				std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				return(response);
+
+				//std::cout << RED << "content readed from pipe is |" << content << "|" << RESET << std::endl;;
+
+				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+				//std::cout << "response str is: " << responseStr << std::endl;
+				return(responseStr);
 			}
 		}
 		return (response);
 	}
 }
 
-std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server& currentServ)
+std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Server& currentServ)
 {
 	std::stringstream	responseStatus;
 	std::string			fileName;
 
 	responseStatus << errorCode << " KO";
-	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
+	fileName = ResponseGeneratorPOST::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
 	std::ifstream file(fileName.c_str());
 	if (!file.is_open())
@@ -339,6 +329,7 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 			return (response);
 		}
 	}
+	debug("File opened");
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	std::stringstream ss;
@@ -347,5 +338,7 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
+	std::cout << BLUE << response << RESET <<std::endl;
+
 	return ((response));
 }

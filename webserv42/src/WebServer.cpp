@@ -12,6 +12,7 @@
 #include "WebServer.hpp"
 #include "Parser.hpp"
 #include "ResponseGenerator_DELETE.hpp"
+#include "ResponseGenerator_POST.hpp"
 #include <signal.h>
 #ifndef METHOD_NOT_IMPLEMENTED
 # define METHOD_NOT_IMPLEMENTED	501
@@ -157,6 +158,7 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					std::string response = buildResponse(cliVectorPos);
+<<<<<<< HEAD
 					// sendResponse(cliVectorPos , response);
 					// pollFDS[i].events = POLLIN;
 					if (!response.empty())
@@ -168,6 +170,11 @@ void	WebServer::serverLoop(void)
 					{
 						cleanVectors(cliVectorPos);
 					}
+=======
+					sendResponse(cliVectorPos , response);
+					pollFDS[i].events = POLLIN;
+					cleanVectors(cliVectorPos);
+>>>>>>> larra
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -248,6 +255,8 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;
+			// HERE THE POST RESPONSE
+			response = ResponseGeneratorPOST::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;
@@ -256,7 +265,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;
-			//response = ResponseGenerator::errorResponse(config, METHOD_NOT_IMPLEMENTED);
+			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED, config.getServer(req.getPort()));
 			break;
 	}
 
@@ -268,22 +277,28 @@ void WebServer::sendResponse(int vectorPos, std::string& response) //still imple
 {
 	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) == -1)
 		std::cerr << "Send failed" << std::endl;
+<<<<<<< HEAD
 	else
 		std::cout << GREEN "Response sent successfully" RESET << std::endl;
 	
+=======
+>>>>>>> larra
 }
 
 void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
-		
-	while (clientSockets[vectorPos] != pollFDS[i].fd)
-		i++;
-	
-	pollFDS.erase(pollFDS.begin() + i);
-	clientSockets.erase(clientSockets.begin() + vectorPos);
-	requests.erase(requests.begin() + vectorPos);
-	std::cout << "Closed connection with client" << std::endl;
+
+	if (requests[vectorPos].getConection() == 0)
+	{
+		while (clientSockets[vectorPos] != pollFDS[i].fd)
+			i++;
+		close(pollFDS[i].fd);
+		pollFDS.erase(pollFDS.begin() + i);
+		clientSockets.erase(clientSockets.begin() + vectorPos);
+		requests.erase(requests.begin() + vectorPos);
+		std::cout << "Closed connection with client" << std::endl;
+	}
 }
 
 void	WebServer::serverClose(void)

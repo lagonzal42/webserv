@@ -9,7 +9,7 @@
 #include <cstdio>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 1000
+# define BUFFER_SIZE 100
 #endif
 
 Request::Request(void)
@@ -21,7 +21,7 @@ Request::~Request(void)
 
 int Request::readRequest(int client_socket)
 {
-	char buffer[BUFFER_SIZE + 1] = {0};
+	char buffer[BUFFER_SIZE] = {0};
 	int valread = BUFFER_SIZE;
 	std::string requestStr;
 
@@ -47,7 +47,7 @@ int Request::readRequest(int client_socket)
 	if (pos != std::string::npos)
 	{
 		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
-		_body.append(requestStr.substr(pos + 4));
+		_body = requestStr.substr(pos + 4);
 	}
 
 	std::istringstream reqStream(requestStr);

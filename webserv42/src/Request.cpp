@@ -5,13 +5,15 @@
 #include <fcntl.h>
 #include <iostream>
 #include <sstream>
+#include "colors.h"
+#include <cstdio>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 10000
+# define BUFFER_SIZE 100
 #endif
 
 Request::Request(void)
-: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _queryString(""), _body(""), _keepAlive(false)
+: _method(""), _version(""), _path(""), _host(""), _port(""), _encoding(""), _queryString(""), _body(""), _contentLength(0), _keepAlive(false)
 {}
 
 Request::~Request(void)
@@ -21,11 +23,12 @@ int Request::readRequest(int client_socket)
 {
 	char buffer[BUFFER_SIZE] = {0};
 	int valread = BUFFER_SIZE;
-	std::string requestStr = "";
+	std::string requestStr;
 
 	while (BUFFER_SIZE == valread)
 	{
 		valread = read(client_socket, buffer, BUFFER_SIZE);
+		std::cout << GREEN << valread << RESET << std::endl;
 		if (valread < 0)
 		{
 			std::cerr << "Error on read" << std::endl;
@@ -34,13 +37,18 @@ int Request::readRequest(int client_socket)
 		}
 		else
 		{
-			requestStr += std::string(buffer);
+			requestStr.append(std::string(buffer, valread));
 		}
 	}
 
+	std::cout << RED << requestStr << RESET <<  std::endl;
+
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
-		_body += requestStr.substr(pos + 4);
+	{
+		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
+		_body = requestStr.substr(pos + 4);
+	}
 
 	std::istringstream reqStream(requestStr);
 	std::string line;
@@ -91,7 +99,17 @@ int Request::readRequest(int client_socket)
 			_encoding = encoding;
 			//break; //As we dont need more info
 		}
+		else if (title == "Content-Length")
+		{
+			std::string contentLengthStr;
+			std::getline(line_ss, contentLengthStr);
+			std::stringstream intss;
+			intss << contentLengthStr;
+			intss >> _contentLength;
+		}
 	} //end of while(std::getline)
+
+	//std::cout << "Body length: " <<_body.length() << std::endl;
 	return 0;
 }
 
@@ -118,6 +136,7 @@ void	Request::print(void) const
 	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
 	std::cout << "Body: |" << _body << "\\" << std::endl;
+	std::cout << "Content-Length: " << _contentLength << std::endl;
 
 }
 

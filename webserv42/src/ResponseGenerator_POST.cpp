@@ -140,6 +140,8 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 
 std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
+	std::string response;
+
 	// Extrae la extensión del archivo
     std::string extension = cleanPath.substr(cleanPath.find_last_of("."));
 
@@ -158,7 +160,8 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 			return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 		}
 	}
-	else if (req.getEncoding() == "chunked") // maybe move it to postCGIresponse
+
+	if (req.getEncoding() == "chunked") // maybe move it to postCGIresponse
 	{
 		// this manage chunked uploads
 		std::cout << MAGENTA << "Request encode is: " << req.getEncoding() << RESET << std::endl;
@@ -167,20 +170,27 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 	}
 	else
 	{
-		// Extrae el cuerpo de la solicitud POST
-        std::string requestBody = req.getBody();
+		// Llama a extractFileContent para procesar el cuerpo de la solicitud
+    	std::string fileContent = extractFileContent(req.getBody());
+
+		std::cout << MAGENTA << "Contenido del archivo extraído: " << fileContent << RESET << std::endl;
 
         // Combina la ruta de carga con el nombre del archivo
-        std::string filePath = cleanPath;
+        std::string filePath = cleanPath + getFilename(req.getBody());
 
         // Guarda el cuerpo de la solicitud en un archivo
 		std::ofstream ofs(filePath.c_str(), std::ios::binary);
-		ofs << requestBody;
 		ofs.close();
 
         std::cout << "Saved file: " << filePath << std::endl;
+
+		  // Construye la cabecera de la respuesta HTTP
+		std::stringstream ss;
+		ss << fileContent.size();
+		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + fileContent;
 	}
-	return ("END OF FUNCTION");
+	return (response);
+	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/
 }
 
 // check here the data form html form
@@ -336,4 +346,50 @@ std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Se
 	std::cout << BLUE << response << RESET <<std::endl;
 
 	return ((response));
+}
+
+// Función para extraer el contenido del archivo de una solicitud multipart/form-data
+std::string extractFileContent(const std::string& requestBody)
+{
+    std::string startDelimiter = "filename=\"";
+    std::string endDelimiter = "\r\n";
+    std::string boundaryStartPattern = "--"; // Identificador del inicio del boundary
+
+    size_t startPos = requestBody.find(startDelimiter);
+    if (startPos != std::string::npos) {
+        startPos += startDelimiter.length();
+        size_t endPos = requestBody.find(endDelimiter, startPos);
+        if (endPos != std::string::npos) {
+            // Extraer el contenido del archivo
+            size_t contentStart = requestBody.find("\r\n\r\n", startPos) + 4; // Saltar hasta el inicio del contenido
+            size_t contentEnd = contentStart; // Inicializar contentEnd con contentStart
+
+            // Buscar el inicio del boundary en las siguientes líneas
+            size_t nextLinePos = requestBody.find("\r\n", contentStart);
+            while (nextLinePos != std::string::npos) {
+                size_t boundaryLineStart = requestBody.find(boundaryStartPattern, nextLinePos + 2);
+                if (boundaryLineStart == nextLinePos + 2) {
+                    // Encontramos el inicio del boundary, ahora retrocedemos para eliminar toda la línea
+                    contentEnd = nextLinePos; // Ajustar contentEnd para eliminar la línea del boundary
+                    break;
+                }
+                // Mover al inicio de la siguiente línea
+                nextLinePos = requestBody.find("\r\n", nextLinePos + 1);
+            }
+            return requestBody.substr(contentStart, contentEnd - contentStart);
+        }
+    }
+    return ""; // Devolver una cadena vacía si no se encuentra el contenido
+}
+
+// Función para extraer el nombre del archivo de una solicitud multipart/form-data
+std::string getFilename(const std::string &filename)
+{
+    size_t pos = filename.find("filename=");
+    if (pos == std::string::npos) {
+        return "";
+    }
+    size_t start = filename.find('"', pos) + 1;
+    size_t end = filename.find('"', start);
+    return filename.substr(start, end - start);
 }

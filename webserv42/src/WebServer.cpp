@@ -158,7 +158,7 @@ void	WebServer::serverLoop(void)
 					std::string response = buildResponse(cliVectorPos);
 					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
-					//cleanVectors(cliVectorPos);
+					cleanVectors(cliVectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -244,7 +244,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(INVALID_METHOD):
 			std::cout << "Invalid method response" << std::endl;
-			//response = ResponseGenerator::errorResponse(config, METHOD_NOT_IMPLEMENTED);
+			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED, config.getServer(req.getPort()));
 			break;
 	}
 
@@ -254,22 +254,24 @@ std::string WebServer::buildResponse(int cliVecPos)
 
 void WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
-	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0)== -1)
+	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) == -1)
 		std::cerr << "Send failed" << std::endl;
-	
 }
 
 void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
-		
-	while (clientSockets[vectorPos] != pollFDS[i].fd)
-		i++;
-	
-	pollFDS.erase(pollFDS.begin() + i);
-	clientSockets.erase(clientSockets.begin() + vectorPos);
-	requests.erase(requests.begin() + vectorPos);
-	std::cout << "Closed connection with client" << std::endl;
+
+	if (requests[vectorPos].getConection() == 0)
+	{
+		while (clientSockets[vectorPos] != pollFDS[i].fd)
+			i++;
+		close(pollFDS[i].fd);
+		pollFDS.erase(pollFDS.begin() + i);
+		clientSockets.erase(clientSockets.begin() + vectorPos);
+		requests.erase(requests.begin() + vectorPos);
+		std::cout << "Closed connection with client" << std::endl;
+	}
 }
 
 void	WebServer::serverClose(void)

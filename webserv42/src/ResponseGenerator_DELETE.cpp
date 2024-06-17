@@ -69,6 +69,9 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			{
 				std::cout << CYAN "removed successfully" RESET << std::endl;
 				response = generateHttpResponse("200 OK", "File Deleted", "The requested file has been deleted successfully.");
+				// response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 20";
+				// response.append("\r\n\r\n");
+				// response.append("Removed successfully\n");
 			}
 			else
 			{

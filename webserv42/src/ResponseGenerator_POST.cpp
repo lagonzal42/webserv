@@ -160,37 +160,52 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 			return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 		}
 	}
-
-	if (req.getEncoding() == "chunked") // maybe move it to postCGIresponse
+	std::cout << BLUE << "ENCODE:" << req.getEncoding() << RESET << std::endl;
+	if (req.getEncoding() == " chunked")
 	{
 		// this manage chunked uploads
-		std::cout << MAGENTA << "Request encode is: " << req.getEncoding() << RESET << std::endl;
 		std::cout << "Processing chunked POST request" << std::endl;
-		// return (ResponseGeneratorPOST::postChunkedResponse(//no se)); // not done yet
+		return (ResponseGeneratorPOST::postChunkedResponse(currentLoc, req, currentServ, cleanPath)); // not done yet
 	}
 	else
 	{
 		// Llama a extractFileContent para procesar el cuerpo de la solicitud
     	std::string fileContent = extractFileContent(req.getBody());
 
-		std::cout << MAGENTA << "Contenido del archivo extraído: " << fileContent << RESET << std::endl;
+		std::cout << MAGENTA << "Content extracted: " << fileContent << RESET << std::endl;
 
         // Combina la ruta de carga con el nombre del archivo
         std::string filePath = cleanPath + getFilename(req.getBody());
 
         // Guarda el cuerpo de la solicitud en un archivo
 		std::ofstream ofs(filePath.c_str(), std::ios::binary);
-		ofs.close();
+		if (!ofs) {
+			std::cerr << "Error opening file: " << filePath << std::endl;
+		}
+		else {
+			ofs << fileContent;
+			ofs.flush(); // Asegura que todo el contenido se escribe en el archivo
+			ofs.close();
+			std::cout << "Saved file: " << filePath << std::endl;
+		}
 
-        std::cout << "Saved file: " << filePath << std::endl;
-
-		  // Construye la cabecera de la respuesta HTTP
+		// Construye la cabecera de la respuesta HTTP
 		std::stringstream ss;
 		ss << fileContent.size();
 		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + fileContent;
+		return (response);
 	}
-	return (response);
 	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/
+	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}'
+}
+
+std::string	ResponseGeneratorPOST::postChunkedResponse(const Parser::Location& currentLoc, Request& req, const Parser::Server& currentServ, std::string& cleanPath)
+{
+	(void)currentLoc;
+	(void)req;
+	(void)currentServ;
+	(void)cleanPath;
+	return ("Not implemented yet");
 }
 
 // check here the data form html form

@@ -76,7 +76,5 @@ class WebServer
 	
 	public:
 
-
-	
 };
 

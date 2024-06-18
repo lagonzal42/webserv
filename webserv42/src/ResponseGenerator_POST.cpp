@@ -142,26 +142,9 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 {
 	std::string response;
 
-	// Extrae la extensión del archivo
-    std::string extension = cleanPath.substr(cleanPath.find_last_of("."));
-
-    // Obtén el mapa de MimeDict
-    std::map<std::string, std::string> mimeMap = MimeDict::getMimeDict()->getMap();
-
-    // Busca en el mapa la extensión
-    std::map<std::string, std::string>::iterator it = mimeMap.find(extension);
-
-	if (it != mimeMap.end()) {
-        // La extensión se encontró en el mapa
-        std::string mimeType = it->second;
-
-		if (mimeType == "application/x-sh") // check if it's and executable
-		{
-			return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
-		}
-	}
-	std::cout << BLUE << "ENCODE:" << req.getEncoding() << RESET << std::endl;
-	if (req.getEncoding() == " chunked")
+	if (currentLoc.name == "/cgi/")
+		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
+	if (req.getEncoding() == " chunked\r")
 	{
 		// this manage chunked uploads
 		std::cout << "Processing chunked POST request" << std::endl;
@@ -195,17 +178,43 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + fileContent;
 		return (response);
 	}
-	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/
-	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}'
+	// curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
+	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // file upload
+	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json
+	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '[{"clave": "valor1"}, {"clave": "valor2"}, {"clave": "valor3"}]' // chunked jsons
 }
 
-std::string	ResponseGeneratorPOST::postChunkedResponse(const Parser::Location& currentLoc, Request& req, const Parser::Server& currentServ, std::string& cleanPath)
-{
-	(void)currentLoc;
-	(void)req;
-	(void)currentServ;
-	(void)cleanPath;
-	return ("Not implemented yet");
+std::string ResponseGeneratorPOST::postChunkedResponse(const Parser::Location& currentLoc, Request& req, const Parser::Server& currentServ, std::string& cleanPath) {
+    (void)currentLoc;
+    (void)currentServ;
+    (void)cleanPath;
+
+    // Respuesta inicial con 100 Continue
+    std::string response = "HTTP/1.1 100 Continue\r\n\r\n";
+
+    // Aquí se podría enviar la respuesta 100 Continue
+    // sendResponse(response); // Esta es una función hipotética para enviar la respuesta
+
+    // Verifica si el cuerpo de la solicitud está vacío después de recibir 100 Continue
+    if ("condicion de continue") {
+		"devolver HTTP 100 Continue";
+    }
+	else {
+        // Procesa el cuerpo de la solicitud si no está vacío
+
+        // Obtiene el cuerpo de la solicitud en formato chunked
+        std::string chunkedBody = req.getBody();
+
+        // Procesa los chunks para extraer el contenido
+        std::string bodyContent = processChunks(chunkedBody);
+
+        // Construye la cabecera de la respuesta final HTTP después de procesar el cuerpo
+        std::stringstream ss;
+        ss << bodyContent.size();
+        response += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
+
+        return response; // Devuelve la respuesta final después de procesar el cuerpo
+    }
 }
 
 // check here the data form html form
@@ -407,4 +416,32 @@ std::string getFilename(const std::string &filename)
     size_t start = filename.find('"', pos) + 1;
     size_t end = filename.find('"', start);
     return filename.substr(start, end - start);
+}
+
+std::string processChunks(const std::string& chunkedData) {
+    std::string result;
+    std::istringstream stream(chunkedData);
+    std::string line;
+    while (std::getline(stream, line)) {
+        // Elimina el '\r' al final de la línea si está presente
+        if (!line.empty() && line[line.size() - 1] == '\r') {
+            line.erase(line.size() - 1);
+        }
+
+        // Convierte la longitud de hexadecimal a decimal
+        unsigned int length = std::strtoul(line.c_str(), NULL, 16);
+
+        // Si la longitud es 0, se alcanzó el final de los chunks
+        if (length == 0) {
+            break;
+        }
+
+        // Lee el contenido del chunk
+        std::vector<char> buffer(length + 2); // +2 para el \r\n final
+        stream.read(&buffer[0], length + 2);
+
+        // Añade el contenido al resultado, ignorando los últimos dos caracteres (\r\n)
+        result.append(buffer.begin(), buffer.end() - 2);
+    }
+    return result;
 }

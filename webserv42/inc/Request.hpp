@@ -13,6 +13,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 
 
@@ -28,8 +29,6 @@ class Request{
 		std::string _queryString;
 		std::string _body;
 		size_t		_contentLength;
-		
-		
 		bool	_keepAlive;
 
 	public:

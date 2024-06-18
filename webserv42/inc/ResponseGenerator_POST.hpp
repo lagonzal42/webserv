@@ -21,3 +21,4 @@ class ResponseGeneratorPOST
 
 std::string extractFileContent(const std::string& requestBody);
 std::string getFilename(const std::string &filename);
+std::string	processChunks(const std::string& chunkedBody);

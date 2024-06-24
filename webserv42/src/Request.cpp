@@ -9,7 +9,7 @@
 #include <cstdio>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 10
+# define BUFFER_SIZE 100
 #endif
 
 Request::Request(void)

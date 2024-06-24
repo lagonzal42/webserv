@@ -48,6 +48,7 @@
 #include "colors.h"
 #include "Utils.hpp"
 
+std::stack<int> ResponseGeneratorPOST::chunkedRequests;
 /*=============================*/
 
 std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string locPath, std::string reqPath)
@@ -107,8 +108,9 @@ std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string l
 	return (cleanPath);
 }
 
-std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
+std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp, int cliVecPos)
 {
+	(void)cliVecPos;
 	// Use envp in case of CGI like html form
 	debug(RED);
 	debug("ResponseGeneratorPOST::generatePostResponse");
@@ -128,30 +130,39 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	}
 	else if (currentLoc.name == "/upload/")
 	{
-		std::cout << "Processing upload POST request" << std::endl;
-		return (ResponseGeneratorPOST::postResponse(currentLoc, req, envp, currentServ, cleanPath));
+		return (ResponseGeneratorPOST::postResponse(currentLoc, req, envp, currentServ, cleanPath, cliVecPos));
 	}
 	else
 	{
 		std::cerr << "Location not found" << std::endl;
 		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
 	}
+
 }
 
-std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath, int cliVecPos)
 {
 	std::string response;
+	int chunked;
+	(void)cliVecPos;
 
+	// return response = "HTTP/1.1 100-continue\r\n\r\n";
+
+	chunked = 1;
 	if (currentLoc.name == "/cgi/")
 		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
-	if (req.getEncoding() == " chunked\r")
+	else if (req.getEncoding() == "chunked\r")
 	{
+		chunked *= -1;
 		// this manage chunked uploads
-		std::cout << "Processing chunked POST request" << std::endl;
-		return (ResponseGeneratorPOST::postChunkedResponse(currentLoc, req, currentServ, cleanPath)); // not done yet
+		std::cout << BLUE << "Processing chunked POST request" << RESET << std::endl;
+		return (ResponseGeneratorPOST::postChunkedResponse(req, chunked));
 	}
 	else
 	{
+		// MimeDict *mimeDict = MimeDict::getMimeDict();
+		// std::map<std::string, std::string> format = mimeDict->getMap();
+
 		// Llama a extractFileContent para procesar el cuerpo de la solicitud
     	std::string fileContent = extractFileContent(req.getBody());
 
@@ -179,42 +190,31 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 		return (response);
 	}
 	// curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
-	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // file upload
+	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // txt upload
 	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json
 	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '[{"clave": "valor1"}, {"clave": "valor2"}, {"clave": "valor3"}]' // chunked jsons
 }
 
-std::string ResponseGeneratorPOST::postChunkedResponse(const Parser::Location& currentLoc, Request& req, const Parser::Server& currentServ, std::string& cleanPath) {
-    (void)currentLoc;
-    (void)currentServ;
-    (void)cleanPath;
-
+std::string ResponseGeneratorPOST::postChunkedResponse(Request& req, int chunked)
+{
+	std::string response;
     // Respuesta inicial con 100 Continue
-    std::string response = "HTTP/1.1 100 Continue\r\n\r\n";
 
-    // Aquí se podría enviar la respuesta 100 Continue
-    // sendResponse(response); // Esta es una función hipotética para enviar la respuesta
+	// Obtiene el cuerpo de la solicitud en formato chunked
+	std::string chunkedBody = req.getBody();
 
-    // Verifica si el cuerpo de la solicitud está vacío después de recibir 100 Continue
-    if ("condicion de continue") {
-		"devolver HTTP 100 Continue";
-    }
-	else {
-        // Procesa el cuerpo de la solicitud si no está vacío
+	// Procesa los chunks para extraer el contenido
+	std::string bodyContent = processChunks(chunkedBody);
 
-        // Obtiene el cuerpo de la solicitud en formato chunked
-        std::string chunkedBody = req.getBody();
-
-        // Procesa los chunks para extraer el contenido
-        std::string bodyContent = processChunks(chunkedBody);
-
-        // Construye la cabecera de la respuesta final HTTP después de procesar el cuerpo
-        std::stringstream ss;
-        ss << bodyContent.size();
-        response += "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
-
-        return response; // Devuelve la respuesta final después de procesar el cuerpo
-    }
+	// Construye la cabecera de la respuesta final HTTP después de procesar el cuerpo
+	std::stringstream ss;
+	ss << bodyContent.size();
+	// TRAMPEAO
+	if (chunked == -1)
+    	response = "HTTP/1.1 100 Continue\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
+	else
+		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
+	return response; // Devuelve la respuesta final después de procesar el cuerpo
 }
 
 // check here the data form html form

@@ -158,7 +158,7 @@ void	WebServer::serverLoop(void)
 					std::string response = buildResponse(cliVectorPos);
 					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
-					cleanVectors(cliVectorPos);
+					//fcleanVectors(cliVectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -213,7 +213,6 @@ std::string WebServer::buildResponse(int cliVecPos)
 		std::cerr << e.what() << '\n';
 	}
 	
-
 	int i = 0;
 	for (; i < 3; i++)
 	{
@@ -234,8 +233,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 		case(POST):
 			std::cout << "Post Response" << std::endl;
-			// HERE THE POST RESPONSE
-			response = ResponseGeneratorPOST::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
+			response = ResponseGeneratorPOST::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp, cliVecPos);
 			break;
 		case(DELETE):
 			std::cout << "Delete Response" << std::endl;

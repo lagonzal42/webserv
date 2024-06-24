@@ -6,17 +6,19 @@
 #include "MimeDict.hpp"
 #include "Utils.hpp"
 #include <iostream>
+#include <stack>
 
 class ResponseGeneratorPOST
 {
 	public:
 		/*=============================== GET RESPONSES ===================================*/
-		static std::string	generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp);
-		static std::string	postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath);
-		static std::string	postChunkedResponse(const Parser::Location& currentLoc, Request& req, const Parser::Server& currentServ, std::string& cleanPath);
+		static std::string	generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp, int cliVecPos);
+		static std::string	postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath, int cliVecPos);
+		static std::string	postChunkedResponse(Request& req, int chunked);
 		static std::string	postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath);
 		static std::string	parsePath(std::string servPath, std::string locPath, std::string reqPath);
 		static std::string	errorResponse(int errorCode, const Parser::Server& currentServ);
+		static std::stack<int>	chunkedRequests;
 };
 
 std::string extractFileContent(const std::string& requestBody);

@@ -1,5 +1,6 @@
 
 #include "Request.hpp"
+#include "colors.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -21,93 +22,97 @@ Request::~Request(void)
 
 int Request::readRequest(int client_socket)
 {
-    char buffer[BUFFER_SIZE] = {0};
-    int valread = BUFFER_SIZE;
-    std::string requestStr;
+	char buffer[BUFFER_SIZE + 1] = {0};
+	int valread = BUFFER_SIZE;
+	std::string requestStr;
 
-    while (BUFFER_SIZE == valread)
-    {
-        valread = read(client_socket, buffer, BUFFER_SIZE);
-        std::cout << GREEN << valread << RESET << std::endl;
-        if (valread < 0)
-        {
-            std::cerr << "Error on read" << std::endl;
-            close(client_socket);
-            return 1;
-        }
-        else
-        {
-            requestStr.append(std::string(buffer, valread));
-        }
-    }
+	while (BUFFER_SIZE == valread)
+	{
+		valread = read(client_socket, buffer, BUFFER_SIZE);
+		std::cout << GREEN << valread << RESET << std::endl;
+		if (valread < 0)
+		{
+			std::cerr << "Error on read" << std::endl;
+			close(client_socket);
+			return 1;
+		}
+		else
+		{
+			requestStr.append(std::string(buffer, valread));
+		}
+	}
 
-    std::cout << RED << requestStr << RESET <<  std::endl;
+	std::cout << RED << requestStr << RESET <<  std::endl;
 
-    size_t pos = requestStr.find("\r\n\r\n");
-    if (pos != std::string::npos)
-    {
-        std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
-        _body = requestStr.substr(pos + 4);
-    }
+	size_t pos = requestStr.find("\r\n\r\n");
+	if (pos != std::string::npos)
+	{
+		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
+		_body.append(requestStr.substr(pos + 4));
+	}
 
-    std::istringstream reqStream(requestStr);
-    std::string line;
-    std::string title;
+	std::istringstream reqStream(requestStr);
+	std::string line;
+	std::string title;
 
-    // Separa la primera línea de la solicitud y la divide por espacios
-    std::getline(reqStream, line);
-    std::istringstream line_ss(line);
-    line_ss >> _method >> _path >> _version;
+	std::cout << "_body: " << _body << RESET << std::endl;	
 
-    std::istringstream pathfinder(_path);
-    std::getline(pathfinder, _path, '?');
-    std::getline(pathfinder, _queryString, '?');
+	// separates the request first line and separates it by spaces
+	std::getline(reqStream, line);
+	std::istringstream line_ss(line);
+	line_ss >> _method >> _path >> _version;
 
-    // Procesa cada línea aparte de la primera
-    while (std::getline(reqStream, line))
-    {
-        std::istringstream line_ss(line);
+	std::istringstream pathfinder(_path);
+	std::getline(pathfinder, _path, '?');
+	std::getline(pathfinder, _queryString, '?');
 
-        // Divide la línea por el primer ':' y guarda la primera parte en title
-        std::getline(line_ss, title, ':');
-        if (!title.empty())
-        {
-            std::string value;
-            std::getline(line_ss, value);
-            if (!value.empty() && value[0] == ' ') // Elimina el espacio inicial
-            {
-                value.erase(0, 1);
-            }
-            // Procesa encabezados específicos
-            if (title == "Host")
-            {
-                size_t colonPos = value.find(':');
-                if (colonPos != std::string::npos) // Si encuentra otro ':' significa que hay host y puerto
-                {
-                    _host = value.substr(0, colonPos);
-                    _port = extractNumbers(value.substr(colonPos + 1));
-                }
-                else // Solo hay host
-                    _host = value;
-            }
-            else if (title == "Connection")
-            {
-                _keepAlive = value == "keep-alive" ? true : false; // ¿La conexión debe mantenerse viva?
-            }
-            else if (title == "Transfer-Encoding")
-            {
-                _encoding = value;
-            }
-            else if (title == "Content-Length")
-            {
-                std::stringstream intss;
-                intss << value;
-                intss >> _contentLength;
-            }
-        }
-    } // Fin del bucle while(std::getline)
 
-    return 0;
+	//loops each line apart from the first
+	while (std::getline(reqStream, line))
+	{
+		std::istringstream line_ss(line);
+
+		// divides the line by the first : and saves the first part in title
+		std::getline(line_ss, title, ':');
+		if (title == "Host")
+		{
+			std::string hostPort;
+			std::getline(line_ss, hostPort);
+			size_t colonPos = hostPort.find(':');
+			if (colonPos != std::string::npos) // if it can find another : means there is host and port
+			{
+				_host = hostPort.substr(0, colonPos);
+				// I needed to put this function to omid unkown character
+				_port = extractNumbers(hostPort.substr(colonPos + 1));
+			}
+			else //there is only host
+				_host = hostPort;
+		}
+		else if (title == "Connection")
+		{
+			std::string connection;
+			std::getline(line_ss, connection);
+			_keepAlive = connection == "keep-alive" ? true : false; //the cconnection needs to be kept alive?
+		}
+		else if (title == "Transfer-Encoding")
+		{
+			std::string encoding;
+			std::getline(line_ss, encoding);
+			_encoding = encoding;
+			//break; //As we dont need more info
+		}
+		else if (title == "Content-Length")
+		{
+			std::string contentLengthStr;
+			std::getline(line_ss, contentLengthStr);
+			std::stringstream intss;
+			intss << contentLengthStr;
+			intss >> _contentLength;
+		}
+	} //end of while(std::getline)
+
+	//std::cout << "Body length: " <<_body.length() << std::endl;
+	return 0;
 }
 
 std::string	Request::getMethod(void) const {return _method;}

@@ -8,9 +8,10 @@
 #include <sstream>
 #include "colors.h"
 #include <cstdio>
+#include <sys/socket.h>
 
 #ifndef BUFFER_SIZE
-# define BUFFER_SIZE 100
+# define BUFFER_SIZE 10000
 #endif
 
 Request::Request(void)
@@ -22,14 +23,20 @@ Request::~Request(void)
 
 int Request::readRequest(int client_socket)
 {
-	char buffer[BUFFER_SIZE + 1] = {0};
+	char buffer[BUFFER_SIZE] = {0};
 	int valread = BUFFER_SIZE;
 	std::string requestStr;
+	//size_t totalRead = 0;
+	_body.clear();
 
 	while (BUFFER_SIZE == valread)
 	{
-		valread = read(client_socket, buffer, BUFFER_SIZE);
+		//std::cout << "gonna read" << std::endl;
+		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
+		//std::cout << "readed" << std::endl;
+		//totalRead += valread;
 		std::cout << GREEN << valread << RESET << std::endl;
+	//	std::cout << GREEN << totalRead << RESET << std::endl;
 		if (valread < 0)
 		{
 			std::cerr << "Error on read" << std::endl;
@@ -38,7 +45,9 @@ int Request::readRequest(int client_socket)
 		}
 		else
 		{
+	//		std::cout << "Gonna append" << std::endl;
 			requestStr.append(std::string(buffer, valread));
+	//		std::cout << "Appended" << std::endl;
 		}
 	}
 
@@ -55,7 +64,7 @@ int Request::readRequest(int client_socket)
 	std::string line;
 	std::string title;
 
-	std::cout << "_body: " << _body << RESET << std::endl;	
+	//std::cout << "_body: " << _body << RESET << std::endl;	
 
 	// separates the request first line and separates it by spaces
 	std::getline(reqStream, line);
@@ -111,7 +120,9 @@ int Request::readRequest(int client_socket)
 		}
 	} //end of while(std::getline)
 
-	//std::cout << "Body length: " <<_body.length() << std::endl;
+	//getchar();
+	//std::cout << "Total readed: " << totalRead << std::endl;
+	//this->print();
 	return 0;
 }
 
@@ -137,8 +148,10 @@ void	Request::print(void) const
 	std::cout << "Port: \"" << _port << "\"" << std::endl;
 	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
-	std::cout << "Body: |" << _body << "\\" << std::endl;
 	std::cout << "Content-Length: " << _contentLength << std::endl;
+	std::cout << "Body length: " << _body.length();
+	//getchar();
+	std::cout << "Body: |" << _body << "\\" << std::endl;
 
 }
 

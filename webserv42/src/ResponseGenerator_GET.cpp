@@ -339,7 +339,14 @@ std::string ResponseGenerator::errorResponse(int errorCode, const Parser::Server
 	std::string			fileName;
 
 	responseStatus << errorCode << " KO";
-	fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
+	try
+	{
+		fileName = ResponseGenerator::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
+	}
+	catch (std::exception& e)
+	{
+		fileName = "";
+	}
 
 	std::ifstream file(fileName.c_str());
 	if (!file.is_open())

@@ -150,6 +150,7 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 {
 	std::string response;
 	std::stringstream responseStatus;
+	std::string content;
 
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
@@ -160,14 +161,24 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 
 	}
 	responseStatus << 200 << " OK";
-	std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
-	if (!file.is_open())
+
+	
+	try
 	{
-		std::cerr << "Failed to open" << cleanPath << std::endl;
-		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
+		if (!file.is_open())
+		{
+			std::cerr << "Failed to open" << cleanPath << std::endl;
+			return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
+		}
+		content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		file.close();
 	}
-	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	file.close();
+	catch (std::exception& e)
+	{
+		return (ResponseGenerator::errorResponse(500, currentServ));
+	}
+	
 	std::stringstream ss;
 	ss << content.size();
 
@@ -226,7 +237,10 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& curren
 
 	while (file)
 	{
-		responseBody += "<li><a href=\"" + cleanPath + file->d_name + "\"" + file->d_name + "</a></li>";
+		std::cout << GREEN << "file into directory is " << file->d_name << RESET << std::endl;
+		std::string fileName = std::string(file->d_name);
+		if (file->d_type)
+		responseBody += "\n<li><a href=\"" + fileName + "\">" + fileName + "</a></li>";
 		file = readdir(directory);
 	}
 	closedir(directory);

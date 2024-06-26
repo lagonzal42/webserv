@@ -34,6 +34,7 @@ class Request{
 	public:
 		Request(void);
 		~Request(void);
+		Request(const Request& param);
 
 		int readRequest(int client_socket);
 		std::string	getMethod(void) const;
@@ -45,8 +46,9 @@ class Request{
 		std::string	getEncoding(void) const;
 		std::string	getBody(void) const;
 		bool		getConection(void) const;
+		size_t		getContentLength(void) const;
 
 		void		print(void) const;
 		std::string	extractNumbers(std::string const & str);
-
+		void		clear(void);
 };

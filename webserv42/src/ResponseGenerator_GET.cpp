@@ -171,7 +171,26 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	std::stringstream ss;
 	ss << content.size();
 
-	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
+	size_t extensionPoint = cleanPath.find_last_of('.');
+	std::string contentType;
+	if (extensionPoint != std::string::npos)
+	{
+		std::string extension = cleanPath.substr(extensionPoint);
+		MimeDict* MimeDict = MimeDict::getMimeDict();
+		std::map<std::string, std::string> mime = MimeDict->getMap();
+		std::cout << "extesion is " << extension << std::endl;
+		try
+		{
+			contentType = mime[extension];
+		}
+		catch(const std::exception& e)
+		{
+			contentType = "text/plain";
+		}
+		
+	}
+
+	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + contentType + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
 	std::cout << BLUE << response << RESET <<std::endl;
 

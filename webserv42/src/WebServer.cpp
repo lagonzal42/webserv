@@ -131,7 +131,7 @@ void	WebServer::serverLoop(void)
 	{
 		// std::cout << LGREEN "counter: " << counter << RESET << std::endl;
 		int events = poll(&pollFDS[0], pollFDS.size(), 5000);
-
+		std::cout << "Polled" << std::endl;
 		if (events > 0)
 		{
 			for (size_t i = 0; i < pollFDS.size(); i++)
@@ -160,7 +160,7 @@ void	WebServer::serverLoop(void)
 					std::string response = buildResponse(cliVectorPos);
 					sendResponse(cliVectorPos , response);
 					pollFDS[i].events = POLLIN;
-					//fcleanVectors(cliVectorPos);
+					cleanVectors(cliVectorPos);
 				}
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
@@ -210,6 +210,8 @@ std::string WebServer::buildResponse(int cliVecPos)
 	debug(RED);
 	debug("Gonna build reponse in Webserver::buildResponse");
 	debug(RESET);
+
+	requests[cliVecPos].print();
 
 	try
 	{
@@ -270,16 +272,18 @@ void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 
+	while (clientSockets[vectorPos] != pollFDS[i].fd)
+		i++;
 	if (requests[vectorPos].getConection() == 0)
 	{
-		while (clientSockets[vectorPos] != pollFDS[i].fd)
-			i++;
 		close(pollFDS[i].fd);
 		pollFDS.erase(pollFDS.begin() + i);
 		clientSockets.erase(clientSockets.begin() + vectorPos);
 		requests.erase(requests.begin() + vectorPos);
 		std::cout << "Closed connection with client" << std::endl;
 	}
+	requests[vectorPos].clear();
+	std::cout << "Request cleared" << std::endl;
 }
 
 void	WebServer::serverClose(void)

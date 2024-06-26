@@ -21,6 +21,10 @@ Request::Request(void)
 Request::~Request(void)
 {}
 
+Request::Request(const Request& param)
+: _method(param.getMethod()), _version(param.getVersion()), _path(param.getPath()), _host(param.getHost()), _port(param.getPort()), _encoding(param.getEncoding()), _queryString(param.getQueryString()), _body(param.getBody()), _contentLength(param.getContentLength()), _keepAlive(param.getConection()) 
+{}
+
 int Request::readRequest(int client_socket)
 {
 	char buffer[BUFFER_SIZE] = {0};
@@ -33,6 +37,7 @@ int Request::readRequest(int client_socket)
 	{
 		//std::cout << "gonna read" << std::endl;
 		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
+		// valread = read(client_socket, buffer, BUFFER_SIZE);
 		//std::cout << "readed" << std::endl;
 		//totalRead += valread;
 		std::cout << GREEN << valread << RESET << std::endl;
@@ -101,7 +106,8 @@ int Request::readRequest(int client_socket)
 		{
 			std::string connection;
 			std::getline(line_ss, connection);
-			_keepAlive = connection == "keep-alive" ? true : false; //the cconnection needs to be kept alive?
+			std::cout << GREEN << connection << RESET << std::endl;
+			_keepAlive = (connection == " keep-alive\r") ? true : false; //the cconnection needs to be kept alive?
 		}
 		else if (title == "Transfer-Encoding")
 		{
@@ -135,6 +141,7 @@ std::string	Request::getPort(void) const {return _port;}
 std::string	Request::getEncoding(void) const {return _encoding;}
 std::string	Request::getBody(void) const {return _body;}
 bool		Request::getConection(void) const {return _keepAlive;}
+size_t		Request::getContentLength(void) const {return _contentLength;}
 
 
 void	Request::print(void) const
@@ -149,9 +156,9 @@ void	Request::print(void) const
 	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
 	std::cout << "Content-Length: " << _contentLength << std::endl;
-	std::cout << "Body length: " << _body.length();
+	std::cout << "Body length: " << _body.length() << std::endl;
 	//getchar();
-	std::cout << "Body: |" << _body << "\\" << std::endl;
+	//std::cout << "Body: |" << _body << "\\" << std::endl;
 
 }
 
@@ -164,4 +171,18 @@ std::string	Request::extractNumbers(std::string const & str)
 			ret.push_back(*it);
 	}
 	return ret;
+}
+
+void	Request::clear()
+{
+	_method.clear();
+	_queryString.clear();
+	_version.clear();
+	_path.clear();
+	_host.clear();
+	_port.clear();
+	_encoding.clear();
+	_keepAlive = 0;
+	_contentLength = 0;
+	_body.clear();
 }

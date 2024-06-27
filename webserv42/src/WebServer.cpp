@@ -149,7 +149,13 @@ void	WebServer::serverLoop(void)
 						std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 						int vectorPos = cliSockPos - clientSockets.begin();
 						readRequest(vectorPos);
-						pollFDS[i].events = POLLOUT;
+						if (requests[vectorPos].empty())
+						{
+							requests[vectorPos].setKeepAlive(false);
+							cleanVectors(vectorPos);
+						}
+						else
+							pollFDS[i].events = POLLOUT;
 					}
 				}
 				else if (pollFDS[i].revents & POLLOUT)

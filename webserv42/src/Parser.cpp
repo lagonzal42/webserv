@@ -15,7 +15,7 @@
 
 // --- Functions for Orthodox canonical class form --- //
 
-Parser::Parser( void ): _conf_file("configurations/webserv.conf")
+Parser::Parser( void ): _conf_file("configurations/default.conf")
 {
 	// std::cout << _conf_file << ": Called default constructor!" << std::endl;
 	Parser::parse(_conf_file);//error check

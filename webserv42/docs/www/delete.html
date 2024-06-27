@@ -192,10 +192,22 @@
 					 }
 				 });
 				// If the response is not successful, display the HTML response
-				const htmlContent = await response.text();
-				const blob = new Blob([htmlContent], { type: 'text/html' });
-				const url = URL.createObjectURL(blob);
-				window.open(url, '_blank');
+				// const htmlContent = await response.text();
+				// const blob = new Blob([htmlContent], { type: 'text/html' });
+				// const url = URL.createObjectURL(blob);
+				// window.open(url, '_blank');
+
+
+
+				if (response.ok) {
+					const message = encodeURIComponent('File deleted successfully.');
+					console.log("removed successfully", response);
+					window.location.href = `./success_delete.html?message=${message}`;
+				} else {
+					// If the response is not successful, display an error message
+					console.error("error response", response);
+					window.location.href = `../default_errors/error_${response.status}.html`;
+				}
 				 
 				//  if (response.ok) {
 				// 	 const message = encodeURIComponent('File deleted successfully.');

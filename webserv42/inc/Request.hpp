@@ -48,7 +48,10 @@ class Request{
 		bool		getConection(void) const;
 		size_t		getContentLength(void) const;
 
+		void		setKeepAlive(bool pKeepAlive);
+
 		void		print(void) const;
 		std::string	extractNumbers(std::string const & str);
 		void		clear(void);
+		bool		empty(void);
 };

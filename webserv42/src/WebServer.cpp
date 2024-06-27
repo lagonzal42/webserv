@@ -18,6 +18,17 @@
 # define METHOD_NOT_IMPLEMENTED	501
 #endif
 
+#ifndef PAYLOAD_TOO_LARGE
+# define PAYLOAD_TOO_LARGE 413
+#endif
+
+#ifndef HTTP_VERSION_NOT_SUPPORTED
+# define HTTP_VERSION_NOT_SUPPORTED 505
+#endif
+
+
+
+
 WebServer::WebServer()
 {}
 WebServer::~WebServer()
@@ -222,6 +233,10 @@ std::string WebServer::buildResponse(int cliVecPos)
 	try
 	{
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
+		if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
+			return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
+		else if (requests[cliVecPos].getMethod() != "HTTP/1.1")
+			return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
 	}
 	catch(const std::runtime_error& e)
 	{
@@ -234,8 +249,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 		if (requests[cliVecPos].getMethod() == vec[i])
 			break;
 	}
-
-	// ?? Parser::Server serv = config.getServers()[requests[cliVecPos].getHost()];
+	
 	std::string response;
 	std::string responseDelete;
 	Request& req = requests[cliVecPos];

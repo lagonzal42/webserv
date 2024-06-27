@@ -143,6 +143,7 @@ std::string	Request::getBody(void) const {return _body;}
 bool		Request::getConection(void) const {return _keepAlive;}
 size_t		Request::getContentLength(void) const {return _contentLength;}
 
+void		Request::setKeepAlive(bool pKeepAlive) {_keepAlive = pKeepAlive;}
 
 void	Request::print(void) const
 {
@@ -185,4 +186,13 @@ void	Request::clear()
 	_keepAlive = 0;
 	_contentLength = 0;
 	_body.clear();
+}
+
+bool	Request::empty(void)
+{
+	if (_method.empty() && _queryString.empty() && _version.empty() && _path.empty()
+		&& _host.empty() && _port.empty() && _encoding.empty() && _encoding.empty()
+		&& !_keepAlive && !_contentLength && _body.empty())
+		return (true);
+	return(false);
 }

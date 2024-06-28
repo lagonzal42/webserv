@@ -235,8 +235,8 @@ std::string WebServer::buildResponse(int cliVecPos)
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
 		if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
 			return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
-		else if (requests[cliVecPos].getMethod() != "HTTP/1.1")
-			return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
+		// else if (requests[cliVecPos].getMethod() != "HTTP/1.1")
+		// 	return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
 	}
 	catch(const std::runtime_error& e)
 	{
@@ -292,6 +292,7 @@ void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 
+	requests[vectorPos].clear();
 	while (clientSockets[vectorPos] != pollFDS[i].fd)
 		i++;
 	if (requests[vectorPos].getConection() == 0)
@@ -302,7 +303,6 @@ void	WebServer::cleanVectors(int vectorPos)
 		requests.erase(requests.begin() + vectorPos);
 		std::cout << "Closed connection with client" << std::endl;
 	}
-	requests[vectorPos].clear();
 	std::cout << "Request cleared" << std::endl;
 }
 

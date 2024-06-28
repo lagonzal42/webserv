@@ -126,6 +126,12 @@ int Request::readRequest(int client_socket)
 		}
 	} //end of while(std::getline)
 
+	while (_body.size() < _contentLength)
+	{
+		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
+		_body.append(std::string(buffer, valread));
+	}
+
 	//getchar();
 	//std::cout << "Total readed: " << totalRead << std::endl;
 	//this->print();

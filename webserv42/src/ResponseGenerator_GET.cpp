@@ -160,8 +160,9 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 			cleanPath += "index.html";
 
 	}
+	
 	responseStatus << 200 << " OK";
-
+	std::cout << "cleanPath is " << cleanPath << std::endl;
 	
 	try
 	{

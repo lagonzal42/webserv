@@ -75,6 +75,12 @@ int Request::readRequest(int client_socket)
 	std::getline(reqStream, line);
 	std::istringstream line_ss(line);
 	line_ss >> _method >> _path >> _version;
+	if (_method != "GET" && _method != "POST" && _method != "DELETE")
+	{
+		std::cerr << "Method not supported" << std::endl;
+		return 2;
+	}
+	
 
 	std::istringstream pathfinder(_path);
 	std::getline(pathfinder, _path, '?');

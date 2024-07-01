@@ -45,10 +45,13 @@
 # define NOT_IMPLEMENTED "Not implemented ^_^"
 #endif
 
+#ifndef CHUNK_SIZE
+# define CHUNK_SIZE 1024
+#endif
+
 #include "colors.h"
 #include "Utils.hpp"
 
-std::stack<int> ResponseGeneratorPOST::chunkedRequests;
 /*=============================*/
 
 std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string locPath, std::string reqPath)
@@ -111,7 +114,7 @@ std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string l
 std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp, int cliVecPos)
 {
 	(void)cliVecPos;
-	// Use envp in case of CGI like html form
+
 	debug(RED);
 	debug("ResponseGeneratorPOST::generatePostResponse");
 	debug("location name:");
@@ -122,60 +125,41 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
 	std::cout << "Clean path is " << cleanPath << std::endl;
 
-	std::cout << MAGENTA << req.getMethod() << RESET << std::endl; // delete this line
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
 		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
 	else if (currentLoc.name == "/upload/")
-	{
-		return (ResponseGeneratorPOST::postResponse(currentLoc, req, envp, currentServ, cleanPath, cliVecPos));
-	}
+		return (ResponseGeneratorPOST::postResponse(req, cleanPath));
+	else if (currentLoc.name == "/cgi/")
+		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 	else
 	{
 		std::cerr << "Location not found" << std::endl;
 		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
 	}
-
 }
 
-std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath, int cliVecPos)
+std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& cleanPath)
 {
 	std::string response;
-	int chunked;
-	(void)cliVecPos;
-
-	// return response = "HTTP/1.1 100-continue\r\n\r\n";
-
-	chunked = 1;
-	if (currentLoc.name == "/cgi/")
-		return (ResponseGeneratorPOST::postCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
-	else if (req.getEncoding() == "chunked\r")
+	
+	if (req.getEncoding() == "chunked\r")
 	{
-		chunked *= -1;
-		// this manage chunked uploads
-		std::cout << BLUE << "Processing chunked POST request" << RESET << std::endl;
-		return (ResponseGeneratorPOST::postChunkedResponse(req, chunked));
+		// std::cout << BLUE << "Processing chunked POST request" << RESET << std::endl;
+		return (ResponseGeneratorPOST::postChunkedResponse(req));
 	}
 	else
 	{
-		// MimeDict *mimeDict = MimeDict::getMimeDict();
-		// std::map<std::string, std::string> format = mimeDict->getMap();
-
-		// Llama a extractFileContent para procesar el cuerpo de la solicitud
     	std::string fileContent = extractFileContent(req.getBody());
-
-		std::cout << MAGENTA << "Content extracted: " << fileContent << RESET << std::endl;
-
-        // Combina la ruta de carga con el nombre del archivo
         std::string filePath = cleanPath + getFilename(req.getBody());
+		// std::cout << MAGENTA << "Content extracted: " << fileContent << RESET << std::endl;
 
         // Guarda el cuerpo de la solicitud en un archivo
 		std::ofstream ofs(filePath.c_str(), std::ios::binary);
-		if (!ofs) {
+		if (!ofs)
 			std::cerr << "Error opening file: " << filePath << std::endl;
-		}
 		else {
 			ofs << fileContent;
 			ofs.flush(); // Asegura que todo el contenido se escribe en el archivo
@@ -183,44 +167,52 @@ std::string	ResponseGeneratorPOST::postResponse(const Parser::Location& currentL
 			std::cout << "Saved file: " << filePath << std::endl;
 		}
 
-		// Construye la cabecera de la respuesta HTTP
 		std::stringstream ss;
 		ss << fileContent.size();
 		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + fileContent;
 		return (response);
 	}
-	// curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
-	// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // txt upload
-	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json
-	// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '[{"clave": "valor1"}, {"clave": "valor2"}, {"clave": "valor3"}]' // chunked jsons
 }
 
-std::string ResponseGeneratorPOST::postChunkedResponse(Request& req, int chunked)
+std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
 {
-	std::string response;
-    // Respuesta inicial con 100 Continue
+    std::string response;
+    static std::vector<char> RequestCopy;
+    std::string requestBody = req.getBody();
 
-	// Obtiene el cuerpo de la solicitud en formato chunked
-	std::string chunkedBody = req.getBody();
+    for (std::string::iterator it = requestBody.begin(); it != requestBody.end(); ++it) {
+        RequestCopy.push_back(*it);
+    }
 
-	// Procesa los chunks para extraer el contenido
-	std::string bodyContent = processChunks(chunkedBody);
+    // Procesa los fragmentos uno por uno
+    for (size_t i = 0; i < RequestCopy.size(); i += CHUNK_SIZE) {
+        // Obtiene el siguiente fragmento
+        char* chunk = &RequestCopy[i];
+        size_t chunkSize = CHUNK_SIZE;
+        if (i + CHUNK_SIZE > RequestCopy.size()) {
+            chunkSize = RequestCopy.size() - i;
+        }
 
-	// Construye la cabecera de la respuesta final HTTP después de procesar el cuerpo
-	std::stringstream ss;
-	ss << bodyContent.size();
-	// TRAMPEAO
-	if (chunked == -1)
-    	response = "HTTP/1.1 100 Continue\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
-	else
-		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + bodyContent;
-	return response; // Devuelve la respuesta final después de procesar el cuerpo
+        // Convierte el fragmento en una cadena
+        std::string chunkStr(chunk, chunk + chunkSize);
+
+        // Procesa el fragmento
+        std::string chunkContent = processChunks(chunkStr);
+
+        response += "HTTP/1.1 100 Continue\r\n\r\n" + chunkContent;
+    }
+
+    std::stringstream ss;
+    ss << response.size();
+    response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + response;
+
+    return response;
 }
 
-// check here the data form html form
-// Use pipes to send info
 std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
+	// check here the data form html form
+	// Use pipes to send info
 	// Redo, this code is from GET
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
@@ -243,7 +235,6 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
 		return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
-		//return (NOT_IMPLEMENTED);
 	}
 
 	int id = fork();
@@ -342,6 +333,7 @@ std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Se
 	fileName = ResponseGeneratorPOST::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
 
 	std::ifstream file(fileName.c_str());
+	std::cout << "Tryed to open: " << fileName << std::endl;
 	if (!file.is_open())
 	{
 		std::cerr << "Failed to open " << fileName << std::endl;
@@ -372,7 +364,6 @@ std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Se
 	return ((response));
 }
 
-// Función para extraer el contenido del archivo de una solicitud multipart/form-data
 std::string extractFileContent(const std::string& requestBody)
 {
     std::string startDelimiter = "filename=\"";
@@ -380,19 +371,24 @@ std::string extractFileContent(const std::string& requestBody)
     std::string boundaryStartPattern = "--"; // Identificador del inicio del boundary
 
     size_t startPos = requestBody.find(startDelimiter);
-    if (startPos != std::string::npos) {
+    if (startPos != std::string::npos)
+	{
         startPos += startDelimiter.length();
         size_t endPos = requestBody.find(endDelimiter, startPos);
-        if (endPos != std::string::npos) {
+
+        if (endPos != std::string::npos)
+		{
             // Extraer el contenido del archivo
             size_t contentStart = requestBody.find("\r\n\r\n", startPos) + 4; // Saltar hasta el inicio del contenido
             size_t contentEnd = contentStart; // Inicializar contentEnd con contentStart
 
             // Buscar el inicio del boundary en las siguientes líneas
             size_t nextLinePos = requestBody.find("\r\n", contentStart);
-            while (nextLinePos != std::string::npos) {
+            while (nextLinePos != std::string::npos)
+			{
                 size_t boundaryLineStart = requestBody.find(boundaryStartPattern, nextLinePos + 2);
-                if (boundaryLineStart == nextLinePos + 2) {
+                if (boundaryLineStart == nextLinePos + 2)
+				{
                     // Encontramos el inicio del boundary, ahora retrocedemos para eliminar toda la línea
                     contentEnd = nextLinePos; // Ajustar contentEnd para eliminar la línea del boundary
                     break;
@@ -403,10 +399,9 @@ std::string extractFileContent(const std::string& requestBody)
             return requestBody.substr(contentStart, contentEnd - contentStart);
         }
     }
-    return ""; // Devolver una cadena vacía si no se encuentra el contenido
+    return "";
 }
 
-// Función para extraer el nombre del archivo de una solicitud multipart/form-data
 std::string getFilename(const std::string &filename)
 {
     size_t pos = filename.find("filename=");
@@ -418,23 +413,23 @@ std::string getFilename(const std::string &filename)
     return filename.substr(start, end - start);
 }
 
-std::string processChunks(const std::string& chunkedData) {
+std::string processChunks(const std::string& chunkedData)
+{
     std::string result;
     std::istringstream stream(chunkedData);
     std::string line;
-    while (std::getline(stream, line)) {
+    while (std::getline(stream, line))
+	{
         // Elimina el '\r' al final de la línea si está presente
-        if (!line.empty() && line[line.size() - 1] == '\r') {
+        if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
-        }
 
         // Convierte la longitud de hexadecimal a decimal
         unsigned int length = std::strtoul(line.c_str(), NULL, 16);
 
         // Si la longitud es 0, se alcanzó el final de los chunks
-        if (length == 0) {
+        if (length == 0)
             break;
-        }
 
         // Lee el contenido del chunk
         std::vector<char> buffer(length + 2); // +2 para el \r\n final
@@ -445,3 +440,8 @@ std::string processChunks(const std::string& chunkedData) {
     }
     return result;
 }
+
+// curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
+// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // txt upload
+// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json
+// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '[{"clave": "valor1"}, {"clave": "valor2"}, {"clave": "valor3"}]' // chunked jsons

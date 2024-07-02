@@ -41,11 +41,13 @@ std::string	Utils::extractNumbers(std::string const & str)
 
 int	Utils::obtainIntFromStr(std::string const & num)
 {
-	int	ret = 0;
+	int	ret;
+	std::cout << "num: " << num << std::endl;
+
 	std::istringstream iss(num);
 	if (!(iss >> ret))
 	{
-		throw std::runtime_error("Failed to convert string to size_t in obtainSizeFromStr()");
+		throw std::runtime_error("Failed to convert string to size_t in obtainIntFromStr()");
 		// std::cerr << "convert error." << std::endl;
 		// return 1; //put exception, end will never get return when it returns error
 	}

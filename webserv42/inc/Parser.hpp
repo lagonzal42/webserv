@@ -74,7 +74,7 @@ class Parser
 			std::map<std::string, Server> _serversDefault;
 			void	serverSetting( std::istringstream & iss, Server & server );
 			void	parseByLine( std::string const & line );
-			// WIP
+
 			Location	processLocation( std::string const & block );
 			Server		processServer( Server tempServer );
 			// Server		processServer( std::string const & block );

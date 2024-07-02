@@ -307,6 +307,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		waitpid(id, &status, WNOHANG);
 		if (now - start != 0) //timeout reached
 		{
+			std::cout << "Hello!" << std::endl;
 			kill(id, SIGKILL);
 			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
 		}

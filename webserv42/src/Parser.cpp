@@ -53,13 +53,11 @@ Parser & Parser::operator=( Parser const & src )
 
 size_t	Parser::obtainSizeFromStr(std::string const & num)
 {
-	size_t	ret = 0;
+	size_t	ret;
 	std::istringstream iss(num);
 	if (!(iss >> ret))
 	{
-		throw std::runtime_error("Failed to convert string to size_t in obtainSizeFromStr()");
-		// std::cerr << "convert error." << std::endl;
-		// return 1; //put exception, end will never get return when it returns error
+		throw std::runtime_error("Failed to convert string to size_t in obtainSizeFromStr()" + num);
 	}
 	return ret;
 }
@@ -114,7 +112,8 @@ Parser::Location	Parser::processLocation( std::string const & block )
 			continue ;
 		std::string	info[9] = {"location", "method", "root", "autoindex", "upload_path", "redirect", "cgi_path", "index", "max_body_size"};
 		int	i = 0;
-		for (i = 0; i < 9; i++)
+		//CONFIRMATION NEEDED
+		for (i = 0; i < 8; i++)
 		{
 			if (line.find(info[i]) != std::string::npos)
 				break ;
@@ -451,17 +450,57 @@ void	Parser::parseByLine(std::string const & line)
 
 bool	Parser::parse( std::string const & conf )
 {
+	//
+	// --- To check before make servers
+	//
+	// std::ifstream	configFile2(conf.c_str());
+	// if (!configFile2.is_open())
+	// {
+	// 	throw std::runtime_error("Failed to open config file: " + conf);
+	// 	// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
+	// }
+	// std::string checker;
+	// std::string isPort = "";
+	// while (std::getline(configFile2, checker))
+	// {
+	// 	if (checker.find("listen") != std::string::npos && checker.find('#') == std::string::npos)
+	// 	{
+	// 		std::cout << "checker: " << checker << std::endl;
+	// 		isPort = Utils::extractNumbers(checker);
+	// 	}
+	// }
+	// configFile2.close();
+	// std::cout << "isPort: " << isPort << std::endl;
+	// if (isPort == "")
+	// {
+	// 	std::cout << "isport is empty" << std::endl;
+	// 	throw std::runtime_error("There is no port in config file: " + conf);
+	// }
+
+	//
+	// --- To check before make servers
+	//
+
+	// std::cout << "I should not be here!" << std::endl;
 	std::ifstream	configFile(conf.c_str());
 	if (!configFile.is_open())
 	{
 		throw std::runtime_error("Failed to open config file: " + conf);
 		// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
 	}
+
 	std::string	line;
 	while (std::getline(configFile, line))
 	{
 		// parse line
 		parseByLine(line);
+	}
+	configFile.close();
+	std::cout << "PORT: " << _servers.begin()->second.port << std::endl;
+	if (_servers.begin()->second.port == "")
+	{
+		std::cout << BLUE "PORT: " << _servers.begin()->second.port << RESET << std::endl;	
+		return false;
 	}
 	return true;
 }

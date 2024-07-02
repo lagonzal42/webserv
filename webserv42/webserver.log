@@ -1,0 +1,146 @@
+initializing sockets
+Initializing port 8080
+Starting server Loop
+No event detected
+[32m100[0m
+[32m93[0m
+[31mPOST /upload/ HTTP/1.1
+Host: localhost:8080
+User-Agent: curl/7.68.0
+Accept: */*
+Content-Length: 912
+Content-Type: multipart/form-data; boundary=------------------------c054c6402e205f39
+
+[0m
+[35m[0m
+[31m
+Gonna build reponse in Webserver::buildResponse
+[0m
+[33mDetected Server: port: "8080" in getServer[0m
+[33mDetected Location: path: "/upload/" in getCurLocation[0m
+============REQUEST==============
+Method: "POST"
+Query String: ""
+Version: "HTTP/1.1"
+Path: "/upload/"
+Host: "localhost"
+Port: "8080"
+Enconding: ""
+Keep-alive: "0"
+Body: |\
+Content-Length: 912
+Post Response
+[33mDetected Server: port: "8080" in getServer[0m
+[33mDetected Server: port: "8080" in getServer[0m
+[33mDetected Location: path: "/upload/" in getCurLocation[0m
+[31m
+ResponseGeneratorPOST::generatePostResponse
+location name:
+/upload/
+[0m
+Gonna generate the clean path with ./docs /upload/ /upload/
+[34m.
+docs
+upload
+[0mClean path is ./docs/upload/
+[35mPOST[0m
+[35mContent extracted: [0m
+response HTTP/1.1 200 OK
+Content-Type: text/html
+Content-Length: 0
+
+
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m100[0m
+[32m12[0m
+[31m--------------------------c054c6402e205f39
+Content-Disposition: form-data; name="file"; filename="aaa.txt"
+Content-Type: text/plain
+
+por mi coco pasa un tren
+
+y hace tiempo que perdio la via, mi cabeza no va bien
+con el txitxichaka, txitxichaka, CHA!~
+
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno 
+texto de relleno texto de relleno 
+
+ah bueno, adios master.
+--------------------------c054c6402e205f39--
+[0m
+[35mpor mi coco pasa un tren
+
+y hace tiempo que perdio la via, mi cabeza no va bien
+con el txitxichaka, txitxichaka, CHA!~
+
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno 
+texto de relleno texto de relleno 
+
+ah bueno, adios master.
+--------------------------c054c6402e205f39--
+[0m
+[31m
+Gonna build reponse in Webserver::buildResponse
+[0m
+[33mDetected Server: port: "8080" in getServer[0m
+[33mDetected Location: path: "/upload/" in getCurLocation[0m
+============REQUEST==============
+Method: "--------------------------c054c6402e205f39"
+Query String: ""
+Version: "HTTP/1.1"
+Path: "/upload/"
+Host: "localhost"
+Port: "8080"
+Enconding: ""
+Keep-alive: "0"
+Body: |por mi coco pasa un tren
+
+y hace tiempo que perdio la via, mi cabeza no va bien
+con el txitxichaka, txitxichaka, CHA!~
+
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno texto de relleno 
+texto de relleno texto de relleno texto de relleno
+texto de relleno texto de relleno 
+texto de relleno texto de relleno 
+
+ah bueno, adios master.
+--------------------------c054c6402e205f39--
+\
+Content-Length: 912
+Invalid method response
+[33mDetected Server: port: "8080" in getServer[0m

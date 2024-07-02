@@ -300,21 +300,16 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		int status;
 		time_t start = std::time(NULL);
 		time_t now = std::time(NULL);
-		while (now - start < 1)
+		while (now - start < 2)
 		{
 			now = std::time(NULL);
 		}
 
 		waitpid(id, &status, WNOHANG);
-		if (now - start != 0) //timeout reached
-		{
-			kill(id, SIGKILL);
-			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
-		}
 		if (WIFEXITED(status)) //child exited
 		{
 			if (WEXITSTATUS(status) != 0) //error exit status
-				response = ResponseGenerator::errorResponse(NOT_FOUND, currentServ);
+				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 			else //normal exit status (0)
 			{
 				char buffer[BUFFER_SIZE];
@@ -343,6 +338,12 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 				std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 				return(response);
 			}
+		}
+		else //child didnt exit
+		{
+			std::cout << "Timeout reached" << std::endl;
+			kill(id, SIGKILL);
+			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
 		}
 		return (response);
 	}

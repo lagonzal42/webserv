@@ -299,18 +299,23 @@ void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 
-	requests[vectorPos].clear();
+	requests[vectorPos].print();
 	while (clientSockets[vectorPos] != pollFDS[i].fd)
 		i++;
 	if (requests[vectorPos].getConection() == 0)
 	{
+		//requests[vectorPos].clear();
 		close(pollFDS[i].fd);
 		pollFDS.erase(pollFDS.begin() + i);
 		clientSockets.erase(clientSockets.begin() + vectorPos);
 		requests.erase(requests.begin() + vectorPos);
 		std::cout << "Closed connection with client" << std::endl;
 	}
-	std::cout << "Request cleared" << std::endl;
+	else
+	{
+		std::cout << "Request cleared" << std::endl;
+		requests[vectorPos].clear();
+	}
 }
 
 void	WebServer::serverClose(void)

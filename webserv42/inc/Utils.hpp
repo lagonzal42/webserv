@@ -20,6 +20,7 @@ class Utils
 			static int	obtainIntFromStr(std::string const & num);
 			static bool fileExists(const std::string &path);
 			static int pathIsFile( const std::string& path );
+			static std::string getExtension(const std::string &cleanPath);
 
 	// --- Getter functions --- //
 

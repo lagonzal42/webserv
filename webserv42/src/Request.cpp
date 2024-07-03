@@ -143,7 +143,7 @@ void	Request::print(void) const
 	std::cout << "Path: \"" << _path << "\"" << std::endl;
 	std::cout << "Host: \"" << _host << "\"" << std::endl;
 	std::cout << "Port: \"" << _port << "\"" << std::endl;
-	std::cout << "Enconding: \"" << _encoding << "\"" << std::endl;
+	std::cout << "Enconding: \\" << _encoding << "|" << std::endl;
 	std::cout << "Keep-alive: \"" << _keepAlive << "\"" << std::endl;
 	std::cout << "Content-Length: " << _contentLength << std::endl;
 	std::cout << "Body length: " << _body.length() << std::endl;

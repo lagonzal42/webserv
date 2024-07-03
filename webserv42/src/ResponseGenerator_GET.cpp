@@ -279,14 +279,27 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 
 	if (id == 0)
 	{
+		std::string executor, program;
+
 		close(pipes[0]);
 		dup2(pipes[1], STDOUT_FILENO);
 		close(pipes[1]);
-		std::string binBash = "/bin/bash";
-		std::string bash = "bash";
-		char *filepath[] = {const_cast<char *>(bash.c_str()), const_cast<char *>(cleanPath.c_str()), NULL};
 
-		if (execve(binBash.c_str(), filepath, &envp[0]) == -1)
+		if (Utils::getExtension(cleanPath) == ".py")
+		{
+			executor = "/usr/bin/python3";
+			program = "python3";
+		}
+		else
+		{
+			executor = "/bin/bash";
+			program = "bash";
+		}
+
+
+		char *filepath[] = {const_cast<char *>(program.c_str()), const_cast<char *>(cleanPath.c_str()), NULL};
+
+		if (execve(executor.c_str(), filepath, &envp[0]) == -1)
 		{
 			std::cerr << "Execve failed" << std::endl;
 			exit(1);
@@ -298,16 +311,18 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		close(pipes[1]);
 		std::string response;
 		int status;
+
 		time_t start = std::time(NULL);
 		time_t now = std::time(NULL);
-		while (now - start < 2)
+		while (now - start < 1)
 		{
 			now = std::time(NULL);
 		}
-
+		
 		waitpid(id, &status, WNOHANG);
 		if (WIFEXITED(status)) //child exited
 		{
+			std::cout << RED << "Child exited" << RESET << std::endl;
 			if (WEXITSTATUS(status) != 0) //error exit status
 				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 			else //normal exit status (0)
@@ -339,7 +354,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 				return(response);
 			}
 		}
-		else //child didnt exit
+		else
 		{
 			std::cout << "Timeout reached" << std::endl;
 			kill(id, SIGKILL);

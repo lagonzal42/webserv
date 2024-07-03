@@ -85,6 +85,18 @@ int Utils::pathIsFile( const std::string& path )
 	}
 }
 
+std::string Utils::getExtension(const std::string &cleanPath)
+{
+	size_t extensionPoint = cleanPath.find_last_of('.');
+	std::string contentType;
+	std::string extension;
+	if (extensionPoint != std::string::npos)
+		extension = cleanPath.substr(extensionPoint);
+	else
+		extension = "";
+	return (extension);		
+}
+
 
 // --- Member functions --- //
 

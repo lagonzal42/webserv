@@ -41,19 +41,13 @@ bool WebServer::initialize(char **envp, std::string configFile)
 	stopSignal = false;
 	try
 	{
-		if (!config.parse(configFile))
-			return (1);
-		// config.parse(configFile);
+		config.parse(configFile);
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << "Parser exception: " <<e.what() << '\n';
 		return (1);
 	}
-	// std::cout << config << std::endl;
-	// std::cout << "Kaixo!" << config.getServers().begin()->first << std::endl;
-	// if (config.getServers().begin()->first.empty())
-	// 	return (1);
 
 	if (initializeSockets())
 		return (1);

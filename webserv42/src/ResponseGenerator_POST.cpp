@@ -145,7 +145,7 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 {
 	std::string response;
 	
-	if (req.getEncoding() == "chunked\r")
+	if (req.getEncoding() == "chunked")
 	{
 		// std::cout << BLUE << "Processing chunked POST request" << RESET << std::endl;
 		return (ResponseGeneratorPOST::postChunkedResponse(req));
@@ -180,6 +180,14 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
     static std::vector<char> RequestCopy;
     std::string requestBody = req.getBody();
 
+	std::string filename = getFilename(req.getBody());
+	if (filename.empty()) {
+        std::stringstream ss;
+        ss << std::time(0);
+        filename = "./docs/upload/chunked.txt";
+    }
+	std::ofstream temp_file(filename.c_str());
+
     for (std::string::iterator it = requestBody.begin(); it != requestBody.end(); ++it) {
         RequestCopy.push_back(*it);
     }
@@ -198,9 +206,16 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
 
         // Procesa el fragmento
         std::string chunkContent = processChunks(chunkStr);
+		temp_file << chunkContent;
 
         response += "HTTP/1.1 100 Continue\r\n\r\n" + chunkContent;
     }
+
+	temp_file.close();
+	if (!temp_file.is_open())
+		std::cout << MAGENTA << "NOOOOOOOO!" << RESET << std::endl;
+	else
+		std::cout << MAGENTA << "SAVED!" << RESET << std::endl;
 
     std::stringstream ss;
     ss << response.size();
@@ -211,27 +226,18 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
 
 std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
-	// check here the data form html form
-	// Use pipes to send info
-	// Redo, this code is from GET
+	std::string response;
+	
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
 		if (!currentLoc.index.empty())
 			cleanPath += currentLoc.index;
 	}
 
-	std::string queryString = req.getQueryString();
-	if (!queryString.empty())
-	{
-		//here we need the envp in order to modify it and add the query string
-		envp.pop_back();
-		std::string qs = "QUERY_STRING=" + req.getQueryString(); 
-		envp.push_back(const_cast<char *>(qs.c_str()));
-	}
+	int pipeToChild[2];
+	int pipeToFather[2];
 
-	int pipes[2];
-
-	if (pipe(pipes) != 0)
+	if (pipe(pipeToFather) != 0 || pipe(pipeToChild) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
 		return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
@@ -239,89 +245,65 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
 
 	int id = fork();
 
-	if (id == 0)
-	{
-		close(pipes[0]);
-		dup2(pipes[1], STDOUT_FILENO);
-		close(pipes[1]);
-		std::string binBash = "/bin/bash";
-		std::string bash = "bash";
-		char *filepath[] = {const_cast<char *>(bash.c_str()), const_cast<char *>(cleanPath.c_str()), NULL};
+	 if (id == 0) // Child process
+    {
+        close(pipeToFather[0]);
+        close(pipeToChild[1]);
 
-		if (execve(binBash.c_str(), filepath, &envp[0]) == -1)
-		{
-			std::cerr << "Execve failed" << std::endl;
-			exit(1);
-		}
-		exit(0);
-	}
-	else
-	{
-		close(pipes[1]);
-		std::string response;
-		int status;
-		time_t start = std::time(NULL);
-		time_t now = std::time(NULL);
-		while (now - start < 1)
-		{
-			//std::cout << "Waiting for child process" << std::endl;
-			now = std::time(NULL);
-		}
+        dup2(pipeToChild[0], STDIN_FILENO);
+        dup2(pipeToFather[1], STDOUT_FILENO);
 
-		waitpid(id, &status, WNOHANG);
-		if (now - start != 0)
-		{
-			kill(id, SIGKILL);
-			return (ResponseGeneratorPOST::errorResponse(TIMEOUT, currentServ));
-		}
-		if (WIFEXITED(status))
-		{
-			//std::cout << "Exited child process" << std::endl;
-			if (WEXITSTATUS(status) != 0)
-			{
-				//std::cout << "Bad exited" << std::endl;
-				response = ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ);
-				//response = NOT_IMPLEMENTED;
-			}
-			else
-			{
-				//std::cout << "well exited" << std::endl;
-				char buffer[BUFFER_SIZE];
-				int readed = BUFFER_SIZE;
+        // Get POST data and split it into words
+        std::string post_data = req.getBody();
+        std::istringstream iss(post_data);
+        std::vector<std::string> words((std::istream_iterator<std::string>(iss)), std::istream_iterator<std::string>());
 
-				std::string content = "";
-				while (readed == BUFFER_SIZE)
-				{
-					readed = read(pipes[0], buffer, BUFFER_SIZE);
-					if (readed < 0)
-					{
-						//std::cout << "read failed" << std::endl;
-						close(pipes[0]);
-						response = ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
-						return (response);
-						//response = NOT_IMPLEMENTED;
-					}
-					else
-					{
-						buffer[readed] = '\0';
-						content += std::string(buffer);
-					}
-				}
-				close(pipes[0]);
-				//std::cout << "Response: " << content;
+        // Combine all words into a single string
+        std::string combined;
+        for (std::vector<std::string>::iterator it = words.begin(); it != words.end(); ++it)
+        {
+            combined += *it;
+            if (it + 1 != words.end())
+            {
+                combined += " ";
+            }
+        }
 
-				std::stringstream ss;
-				ss << content.size();
+        // Prepare arguments for execve
+        std::vector<char*> argv;
+        argv.push_back(const_cast<char*>(cleanPath.c_str()));
+        argv.push_back(const_cast<char*>(combined.c_str()));
+        argv.push_back(NULL);
 
-				//std::cout << RED << "content readed from pipe is |" << content << "|" << RESET << std::endl;;
+        if (execve(cleanPath.c_str(), argv.data(), &envp[0]) == -1)
+        {
+            std::cerr << "Failed to execute CGI program" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+    else if (id > 0) // Parent process
+    {
+        close(pipeToFather[1]);
+        close(pipeToChild[0]);
 
-				std::string responseStr = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-				//std::cout << "response str is: " << responseStr << std::endl;
-				return(responseStr);
-			}
-		}
-		return (response);
-	}
+        std::string post_data = req.getBody();
+        write(pipeToChild[1], post_data.c_str(), post_data.size());
+
+        char buffer[4096];
+        ssize_t count;
+        while ((count = read(pipeToFather[0], buffer, sizeof(buffer) - 1)) > 0)
+        {
+            buffer[count] = '\0';
+            response += buffer;
+        }
+        waitpid(id, NULL, 0);
+    }
+    else
+    {
+        std::cerr << "Failed to fork" << std::endl;
+        return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+    }
+    return response;
 }
 
 std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Server& currentServ)
@@ -441,6 +423,7 @@ std::string processChunks(const std::string& chunkedData)
     return result;
 }
 
+// curl -X  POST -d "ARGUMENTS" http://localhost:8080/cgi-bin/"program" //CGI
 // curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
 // curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // txt upload
 // curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json

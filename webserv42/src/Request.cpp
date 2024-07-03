@@ -99,7 +99,10 @@ int Request::readRequest(int client_socket)
 		{
 			std::string encoding;
 			std::getline(line_ss, encoding);
-			_encoding = encoding;
+			std::string tempEncoding = encoding;
+			size_t posFirst = tempEncoding.find_first_not_of("\r ");
+			size_t posLast = tempEncoding.find_last_not_of("\r ");
+			_encoding = tempEncoding.substr(posFirst, posLast);
 			//break; //As we dont need more info
 		}
 		else if (title == "Content-Length")

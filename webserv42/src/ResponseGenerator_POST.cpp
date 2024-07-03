@@ -128,7 +128,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
 		std::cerr << MAGENTA << "Method not allowed: " << req.getMethod() << RESET << std::endl;
-		return (ResponseGeneratorPOST::errorResponse(METHOD_NOT_ALLOWED, currentServ));
+		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
 	else if (currentLoc.name == "/upload/")
 		return (ResponseGeneratorPOST::postResponse(req, cleanPath));
@@ -137,7 +137,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 	else
 	{
 		std::cerr << "Location not found" << std::endl;
-		return (ResponseGeneratorPOST::errorResponse(NOT_FOUND, currentServ));
+		return (ResponseGenerator::errorResponse(NOT_FOUND, currentServ));
 	}
 }
 
@@ -169,7 +169,7 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 
 		std::stringstream ss;
 		ss << fileContent.size();
-		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + fileContent;
+		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n";
 		return (response);
 	}
 }
@@ -212,10 +212,6 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
     }
 
 	temp_file.close();
-	if (!temp_file.is_open())
-		std::cout << MAGENTA << "NOOOOOOOO!" << RESET << std::endl;
-	else
-		std::cout << MAGENTA << "SAVED!" << RESET << std::endl;
 
     std::stringstream ss;
     ss << response.size();
@@ -227,6 +223,7 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
 std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& currentLoc, Request& req, std::vector<char *>& envp, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response;
+	std::string content;
 	
 	if (cleanPath[cleanPath.length() - 1] == '/')
 	{
@@ -240,7 +237,7 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
 	if (pipe(pipeToFather) != 0 || pipe(pipeToChild) != 0)
 	{
 		std::cerr << "Failed to create pipes" << std::endl;
-		return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+		return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
 	}
 
 	int id = fork();
@@ -289,61 +286,47 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
         std::string post_data = req.getBody();
         write(pipeToChild[1], post_data.c_str(), post_data.size());
 
+		time_t start = std::time(NULL);
+		time_t now = std::time(NULL);
+		while (now - start < 1)
+		{
+			now = std::time(NULL);
+		}
+
         char buffer[4096];
         ssize_t count;
-        while ((count = read(pipeToFather[0], buffer, sizeof(buffer) - 1)) > 0)
-        {
-            buffer[count] = '\0';
-            response += buffer;
-        }
-        waitpid(id, NULL, 0);
+		int status;
+        waitpid(id, &status, WNOHANG);
+		if (WIFEXITED(status))
+		{
+			if (WEXITSTATUS(status) != 0) //error exit status
+				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
+			else
+			{
+				while ((count = read(pipeToFather[0], buffer, sizeof(buffer) - 1)) > 0)
+				{
+					buffer[count] = '\0';
+					content += buffer;
+				}
+				std::stringstream content_size;
+				content_size << content.size();
+				response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + content_size.str() + "\r\n\r\n" + content;
+				return response;
+			}
+		}
+        else
+		{
+			std::cout << "Timeout reached" << std::endl;
+			kill(id, SIGKILL);
+			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
+		}
     }
     else
     {
         std::cerr << "Failed to fork" << std::endl;
-        return (ResponseGeneratorPOST::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
+        return (ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ));
     }
     return response;
-}
-
-std::string ResponseGeneratorPOST::errorResponse(int errorCode, const Parser::Server& currentServ)
-{
-	std::stringstream	responseStatus;
-	std::string			fileName;
-
-	responseStatus << errorCode << " KO";
-	fileName = ResponseGeneratorPOST::parsePath(currentServ.root, "", currentServ.error_pages.at(errorCode));
-
-	std::ifstream file(fileName.c_str());
-	std::cout << "Tryed to open: " << fileName << std::endl;
-	if (!file.is_open())
-	{
-		std::cerr << "Failed to open " << fileName << std::endl;
-		if (errorCode != INTERNAL_SERVER_ERROR)
-		{
-			return (errorResponse(INTERNAL_SERVER_ERROR, currentServ));
-		}
-		else
-		{
-			std::string response;
-			response = "HTTP/1.1 500 OK\r\nContent-Type: text/html\r\nContent-Length: 12";
-			response.append("\r\n\r\n");
-			response.append("Server Error\n");
-			return (response);
-		}
-	}
-	debug("File opened");
-	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	file.close();
-	std::stringstream ss;
-	ss << content.size();
-	std::string response;
-
-	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	
-	std::cout << BLUE << response << RESET <<std::endl;
-
-	return ((response));
 }
 
 std::string extractFileContent(const std::string& requestBody)

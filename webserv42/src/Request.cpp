@@ -30,18 +30,11 @@ int Request::readRequest(int client_socket)
 	char buffer[BUFFER_SIZE] = {0};
 	int valread = BUFFER_SIZE;
 	std::string requestStr;
-	//size_t totalRead = 0;
-	_body.clear();
 
 	while (BUFFER_SIZE == valread)
 	{
-		//std::cout << "gonna read" << std::endl;
 		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
-		// valread = read(client_socket, buffer, BUFFER_SIZE);
-		//std::cout << "readed" << std::endl;
-		//totalRead += valread;
 		std::cout << GREEN << valread << RESET << std::endl;
-	//	std::cout << GREEN << totalRead << RESET << std::endl;
 		if (valread < 0)
 		{
 			std::cerr << "Error on read" << std::endl;
@@ -49,14 +42,10 @@ int Request::readRequest(int client_socket)
 			return 1;
 		}
 		else
-		{
-	//		std::cout << "Gonna append" << std::endl;
 			requestStr.append(std::string(buffer, valread));
-	//		std::cout << "Appended" << std::endl;
-		}
 	}
 
-	std::cout << RED << requestStr << RESET <<  std::endl;
+    std::cout << RED << requestStr << RESET << std::endl;
 
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
@@ -67,9 +56,7 @@ int Request::readRequest(int client_socket)
 
 	std::istringstream reqStream(requestStr);
 	std::string line;
-	std::string title;
-
-	//std::cout << "_body: " << _body << RESET << std::endl;	
+	std::string title;	
 
 	// separates the request first line and separates it by spaces
 	std::getline(reqStream, line);
@@ -79,7 +66,6 @@ int Request::readRequest(int client_socket)
 	std::istringstream pathfinder(_path);
 	std::getline(pathfinder, _path, '?');
 	std::getline(pathfinder, _queryString, '?');
-
 
 	//loops each line apart from the first
 	while (std::getline(reqStream, line))
@@ -132,9 +118,6 @@ int Request::readRequest(int client_socket)
 		_body.append(std::string(buffer, valread));
 	}
 
-	//getchar();
-	//std::cout << "Total readed: " << totalRead << std::endl;
-	//this->print();
 	return 0;
 }
 

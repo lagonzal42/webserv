@@ -151,6 +151,7 @@ void	WebServer::serverLoop(void)
 		{
 			for (size_t i = 0; i < pollFDS.size(); i++)
 			{
+				std::cout << "Iterating" << std::endl;
 				std::vector<int>::iterator servSockPos = std::find(serverSockets.begin(), serverSockets.end(), pollFDS[i].fd);
 				if (pollFDS[i].revents & POLLIN)
 				{
@@ -168,6 +169,7 @@ void	WebServer::serverLoop(void)
 						{
 							requests[vectorPos].setKeepAlive(false);
 							cleanVectors(vectorPos);
+							std::cout << "Empty request" << std::endl;
 						}
 						else
 							pollFDS[i].events = POLLOUT;
@@ -183,6 +185,7 @@ void	WebServer::serverLoop(void)
 					pollFDS[i].events = POLLIN;
 					cleanVectors(cliVectorPos);
 				}
+				std::cout << "End of iteration" << std::endl;
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
 		else if (events == 0)
@@ -237,14 +240,17 @@ std::string WebServer::buildResponse(int cliVecPos)
 	try
 	{
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
-		if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
-			return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
-		// else if (requests[cliVecPos].getMethod() != "HTTP/1.1")
+		// if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
+		// 	return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
 		// 	return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
 	}
 	catch(const std::runtime_error& e)
 	{
 		std::cerr << e.what() << '\n';
+		 /*else*/ if (requests[cliVecPos].getMethod() != "HTTP/1.1")
+		 {
+			std::cout << "HTTP version not supported" << std::endl;
+		 }
 	}
 	
 	int i = 0;
@@ -258,6 +264,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 	std::string responseDelete;
 	Request& req = requests[cliVecPos];
 	req.print();
+	std::cout << i << std::endl;
 	switch(i)
 	{
 		case(GET):
@@ -296,18 +303,23 @@ void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 
-	requests[vectorPos].clear();
+	requests[vectorPos].print();
 	while (clientSockets[vectorPos] != pollFDS[i].fd)
 		i++;
 	if (requests[vectorPos].getConection() == 0)
 	{
+		//requests[vectorPos].clear();
 		close(pollFDS[i].fd);
 		pollFDS.erase(pollFDS.begin() + i);
 		clientSockets.erase(clientSockets.begin() + vectorPos);
 		requests.erase(requests.begin() + vectorPos);
 		std::cout << "Closed connection with client" << std::endl;
 	}
-	std::cout << "Request cleared" << std::endl;
+	else
+	{
+		std::cout << "Request cleared" << std::endl;
+		requests[vectorPos].clear();
+	}
 }
 
 void	WebServer::serverClose(void)

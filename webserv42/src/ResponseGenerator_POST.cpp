@@ -168,7 +168,7 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 		}
 
 		std::stringstream ss;
-		ss << fileContent.size();
+		ss << 0;
 		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n";
 		return (response);
 	}

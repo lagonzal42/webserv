@@ -134,10 +134,10 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 		std::cout << "Processing CGI GET request" << std::endl;
 		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
 	}
-	else if (currentLoc.autoindex && req.getPath()[req.getPath().length() - 1] == '/')
+	else if (currentLoc.autoindex)
 	{
 		std::cout << "Processing autoindex GET request" << std::endl;
-		return (ResponseGenerator::getAutoindexResponse(currentServ, cleanPath));
+		return (ResponseGenerator::getAutoindexResponse(currentLoc, currentServ, cleanPath));
 	}
 	else
 	{
@@ -204,7 +204,7 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + contentType + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
 	
-	std::cout << BLUE << response << RESET <<std::endl;
+	// std::cout << BLUE << response << RESET <<std::endl;
 
 	return ((response));
 }
@@ -220,7 +220,7 @@ std::string	ResponseGenerator::getRedirResponse(const std::string& redir)
 	return (response);
 }
 
-std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& currentServ, std::string& cleanPath)
+std::string	ResponseGenerator::getAutoindexResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
 {
 	std::string response, responseHead, responseBody;
 	DIR* directory = opendir(cleanPath.c_str());
@@ -228,7 +228,7 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& curren
     std::map<std::string, std::string> mime = MimeDict->getMap();
 
 	if (directory == NULL)
-		return (ResponseGenerator::errorResponse(FORBIDEN, currentServ));
+		return (getFileResponse(currentLoc, currentServ, cleanPath));
 	responseHead = "HTTP/1.1 200 OK \r\nContent-Type: " + mime[".html"];
 	responseBody += "<html><head><title>Index of " + cleanPath + "</title></head>";
 	responseBody += "<body><h1>Index of " + cleanPath + "</h1>";
@@ -238,9 +238,8 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Server& curren
 
 	while (file)
 	{
-		std::cout << GREEN << "file into directory is " << file->d_name << RESET << std::endl;
 		std::string fileName = std::string(file->d_name);
-		if (file->d_type)
+		std::cout << YELLOW "fileName " RESET << fileName << std::endl;
 		responseBody += "\n<li><a href=\"" + fileName + "\">" + fileName + "</a></li>";
 		file = readdir(directory);
 	}

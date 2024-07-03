@@ -41,11 +41,7 @@ bool WebServer::initialize(char **envp, std::string configFile)
 	stopSignal = false;
 	try
 	{
-		// if (!config.parse(configFile))
-		// 	return (1);
 		config.parse(configFile);
-		// std::cout << "Im here !!! " << std::endl;
-
 	}
 	catch(const std::exception& e)
 	{

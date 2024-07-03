@@ -79,11 +79,11 @@ int Utils::pathIsFile( const std::string& path )
 		else if (s.st_mode & S_IFREG)
 			return 1; // Path is a regular file
 		else
-			return 0; // Path is neither a regular file nor a directory
+			return 2; // Path is neither a regular file nor a directory
 	}
 	else
 	{
-		return 0; // stat failed, path likely does not exist
+		return 2; // stat failed, path likely does not exist
 	}
 }
 

@@ -237,16 +237,17 @@ std::string WebServer::buildResponse(int cliVecPos)
 	{
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
 		// if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
-		// 	return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
-		// 	return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
+		//  	return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
+		// if (requests[cliVecPos].getVersion() != "HTTP/1.1")
+		//  	return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
 	}
 	catch(const std::runtime_error& e)
 	{
-		std::cerr << e.what() << '\n';
-		 /*else*/ if (requests[cliVecPos].getMethod() != "HTTP/1.1")
-		 {
+		std::cerr << e.what() << " error catched " << '\n';
+		if (requests[cliVecPos].getMethod() != "HTTP/1.1")
+		{
 			std::cout << "HTTP version not supported" << std::endl;
-		 }
+		}
 	}
 	
 	int i = 0;
@@ -282,7 +283,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 			break;
 	}
 
-	std::cout << "response " << response << std::endl;
+	//std::cout << "response " << response << std::endl;
 	return(response);
 }
 

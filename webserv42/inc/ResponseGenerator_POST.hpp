@@ -7,6 +7,7 @@
 #include "Utils.hpp"
 #include <iostream>
 #include <stack>
+#include <iterator>
 
 class ResponseGeneratorPOST
 {

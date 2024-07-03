@@ -62,10 +62,10 @@ $(NAME): $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME)
 	$(info CREATED $(NAME))
 	@echo "$(YELLOW) __________________________________\n/$(CLR_RMV)"
-	@grep "TODO:" log.md
+#	@grep "TODO:" log.md
 	@echo "$$ART"
 	@echo "$(BLUE)"
-	@grep "NEXT:" log.md
+#	@grep "NEXT:" log.md
 	@echo "$(CLR_RMV)"
 
 $(LIBS_TARGET):

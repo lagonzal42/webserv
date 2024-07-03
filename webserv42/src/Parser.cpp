@@ -598,13 +598,13 @@ Parser::Location const Parser::getCurLocation( std::string const & path, std::st
 			{
 				longestMatchLength = matchLength;
 				bestMatch = &location;
-				// std::cout << "bestMatch: " << bestMatch->name << std::endl;
+				std::cout << "bestMatch: " << bestMatch->name << std::endl;
 			}
 		}
 	}
 	if (bestMatch)
 	{
-		// std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
+		std::cout << YELLOW "I found the closest match: " << bestMatch->root << "!!!!" RESET << std::endl;
 		return *bestMatch;
 	}
 	else

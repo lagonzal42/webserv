@@ -496,11 +496,10 @@ bool	Parser::parse( std::string const & conf )
 		parseByLine(line);
 	}
 	configFile.close();
-	std::cout << "PORT: " << _servers.begin()->second.port << std::endl;
-	if (_servers.begin()->second.port == "")
+	if (!(this->_servers.empty()) && (_serversDefault.begin()->second.port == "") && (_servers.begin()->second.port == ""))
 	{
-		std::cout << BLUE "PORT: " << _servers.begin()->second.port << RESET << std::endl;	
-		return false;
+		throw std::runtime_error("No port in file: " + conf);
+		// return false;
 	}
 	return true;
 }

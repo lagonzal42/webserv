@@ -63,7 +63,7 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) != currentLoc.methods.end())
 	{
 		// Check if the path is for a file
-		if (Utils::pathIsFile(fullPath))
+		if (Utils::pathIsFile(fullPath) == 1)
 		{
 			if (remove(fullPath.c_str()) == 0)
 			{

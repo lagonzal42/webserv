@@ -1,4 +1,6 @@
 #include "Utils.hpp"
+#include "colors.h"
+
 #include <sys/stat.h>
 
 #include <sys/types.h>
@@ -65,7 +67,7 @@ bool Utils::fileExists(const std::string &path)
 
 /**
  * @brief Checks if the given path is a file.
- * 
+ * @return 1: regular file, 0: a directory, 3 failed stat
  * @param path The path to check.
  * @return int 1 if the path is a file, 0 otherwise (including if the path does not exist).
  */
@@ -75,15 +77,29 @@ int Utils::pathIsFile( const std::string& path )
 	if (stat(path.c_str(), &s) == 0)
 	{
 		if (s.st_mode & S_IFDIR)
+		{
+			std::cout << GREEN "is directory" RESET << std::endl;
+
 			return 0; // Path is a directory
+		}
 		else if (s.st_mode & S_IFREG)
+		{
+			std::cout << GREEN "is file" RESET << std::endl;
+
 			return 1; // Path is a regular file
+		}
 		else
+		{
+			std::cout << GREEN "not known" RESET << std::endl;
+
 			return 2; // Path is neither a regular file nor a directory
+		}
 	}
 	else
 	{
-		return 2; // stat failed, path likely does not exist
+		std::cout << GREEN "doesn't exist???" RESET << std::endl;
+
+		return 3; // stat failed, path likely does not exist
 	}
 }
 

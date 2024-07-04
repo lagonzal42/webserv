@@ -44,7 +44,7 @@ std::string	Utils::extractNumbers(std::string const & str)
 int	Utils::obtainIntFromStr(std::string const & num)
 {
 	int	ret;
-	std::cout << "num: " << num << std::endl;
+	// std::cout << "num: " << num << std::endl;
 
 	std::istringstream iss(num);
 	if (!(iss >> ret))
@@ -78,19 +78,19 @@ int Utils::pathIsFile( const std::string& path )
 	{
 		if (s.st_mode & S_IFDIR)
 		{
-			std::cout << GREEN "is directory" RESET << std::endl;
+			// std::cout << GREEN "is directory" RESET << std::endl;
 
 			return 0; // Path is a directory
 		}
 		else if (s.st_mode & S_IFREG)
 		{
-			std::cout << GREEN "is file" RESET << std::endl;
+			// std::cout << GREEN "is file" RESET << std::endl;
 
 			return 1; // Path is a regular file
 		}
 		else
 		{
-			std::cout << GREEN "not known" RESET << std::endl;
+			// std::cout << GREEN "not known" RESET << std::endl;
 
 			return 2; // Path is neither a regular file nor a directory
 		}

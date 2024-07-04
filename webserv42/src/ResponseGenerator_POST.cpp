@@ -52,70 +52,10 @@
 #include "colors.h"
 #include "Utils.hpp"
 
-/*=============================*/
 
-std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string locPath, std::string reqPath)
+std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
-	bool lastSlash;
-	bool firstSlash;
-
-	if (reqPath[reqPath.length() - 1] != '/')
-		lastSlash = false;
-	else
-		lastSlash = true;
-	if (!servPath.empty() && servPath[0] == '/')
-		firstSlash = true;
-	else
-		firstSlash = false;
-
-	std::istringstream			pathSS(servPath + locPath + reqPath);
-	std::string					pathPart;
-	std::vector<std::string>	pathPartsVec;
-
-	while (std::getline(pathSS, pathPart, '/'))
-	{
-		if (!pathPart.empty())
-			pathPartsVec.push_back(pathPart);
-	}
-
-	// std::cout << BLUE;
-	// for (size_t i = 0; i < pathPartsVec.size(); i++)
-	// 	std::cout << pathPartsVec[i] << std::endl;
-	
-	// std::cout << RESET;
-
-	std::vector<std::string> cleanPathVec;
-	for (std::vector<std::string>::iterator it = pathPartsVec.begin(); it != pathPartsVec.end(); it++)
-	{
-		if (*it == "..")
-		{
-			if (!cleanPathVec.empty())
-				cleanPathVec.pop_back();
-		}
-		else if (*it != "." || it == pathPartsVec.begin())
-			cleanPathVec.push_back(*it);
-	}
-
-	std::string cleanPath;
-
-	if (firstSlash)
-		cleanPath += "/";
-
-	while (!cleanPathVec.empty())
-	{
-		cleanPath += cleanPathVec.front();
-		if (cleanPathVec.size() > 1 || lastSlash)
-			cleanPath += "/";
-		cleanPathVec.erase(cleanPathVec.begin());
-	}
-	return (cleanPath);
-}
-
-std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp, int cliVecPos)
-{
-	(void)cliVecPos;
-
-	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
+	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, "", req.getPath());
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
@@ -138,27 +78,20 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 	std::string response;
 	
 	if (req.getEncoding() == "chunked")
-	{
-		// std::cout << BLUE << "Processing chunked POST request" << RESET << std::endl;
 		return (ResponseGeneratorPOST::postChunkedResponse(req));
-	}
 	else
 	{
     	std::string fileContent = extractFileContent(req.getBody());
         std::string filePath = cleanPath + getFilename(req.getBody());
-		// std::cout << MAGENTA << "Content extracted: " << fileContent << RESET << std::endl;
 
-        // Guarda el cuerpo de la solicitud en un archivo
 		std::ofstream ofs(filePath.c_str(), std::ios::binary);
 		if (!ofs)
 			std::cerr << "Error opening file: " << filePath << std::endl;
 		else {
 			ofs << fileContent;
-			ofs.flush(); // Asegura que todo el contenido se escribe en el archivo
+			ofs.flush();
 			ofs.close();
-			// std::cout << "Saved file: " << filePath << std::endl;
 		}
-
 		std::stringstream ss;
 		ss << 0;
 		response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n";
@@ -184,31 +117,23 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
         RequestCopy.push_back(*it);
     }
 
-    // Procesa los fragmentos uno por uno
     for (size_t i = 0; i < RequestCopy.size(); i += CHUNK_SIZE) {
-        // Obtiene el siguiente fragmento
         char* chunk = &RequestCopy[i];
         size_t chunkSize = CHUNK_SIZE;
         if (i + CHUNK_SIZE > RequestCopy.size()) {
             chunkSize = RequestCopy.size() - i;
         }
 
-        // Convierte el fragmento en una cadena
         std::string chunkStr(chunk, chunk + chunkSize);
-
-        // Procesa el fragmento
         std::string chunkContent = processChunks(chunkStr);
 		temp_file << chunkContent;
 
         response += "HTTP/1.1 100 Continue\r\n\r\n" + chunkContent;
     }
-
 	temp_file.close();
-
     std::stringstream ss;
     ss << response.size();
     response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + response;
-
     return response;
 }
 
@@ -234,7 +159,7 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
 
 	int id = fork();
 
-	 if (id == 0) // Child process
+	if (id == 0)
     {
         close(pipeToFather[0]);
         close(pipeToChild[1]);
@@ -242,12 +167,10 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
         dup2(pipeToChild[0], STDIN_FILENO);
         dup2(pipeToFather[1], STDOUT_FILENO);
 
-        // Get POST data and split it into words
         std::string post_data = req.getBody();
         std::istringstream iss(post_data);
         std::vector<std::string> words((std::istream_iterator<std::string>(iss)), std::istream_iterator<std::string>());
 
-        // Combine all words into a single string
         std::string combined;
         for (std::vector<std::string>::iterator it = words.begin(); it != words.end(); ++it)
         {
@@ -258,7 +181,6 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
             }
         }
 
-        // Prepare arguments for execve
         std::vector<char*> argv;
         argv.push_back(const_cast<char*>(cleanPath.c_str()));
         argv.push_back(const_cast<char*>(combined.c_str()));
@@ -270,7 +192,7 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
             exit(EXIT_FAILURE);
         }
     }
-    else if (id > 0) // Parent process
+    else if (id > 0)
     {
         close(pipeToFather[1]);
         close(pipeToChild[0]);
@@ -291,7 +213,7 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
         waitpid(id, &status, WNOHANG);
 		if (WIFEXITED(status))
 		{
-			if (WEXITSTATUS(status) != 0) //error exit status
+			if (WEXITSTATUS(status) != 0)
 				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 			else
 			{
@@ -325,7 +247,7 @@ std::string extractFileContent(const std::string& requestBody)
 {
     std::string startDelimiter = "filename=\"";
     std::string endDelimiter = "\r\n";
-    std::string boundaryStartPattern = "--"; // Identificador del inicio del boundary
+    std::string boundaryStartPattern = "--";
 
     size_t startPos = requestBody.find(startDelimiter);
     if (startPos != std::string::npos)
@@ -335,22 +257,18 @@ std::string extractFileContent(const std::string& requestBody)
 
         if (endPos != std::string::npos)
 		{
-            // Extraer el contenido del archivo
-            size_t contentStart = requestBody.find("\r\n\r\n", startPos) + 4; // Saltar hasta el inicio del contenido
-            size_t contentEnd = contentStart; // Inicializar contentEnd con contentStart
+            size_t contentStart = requestBody.find("\r\n\r\n", startPos) + 4;
+            size_t contentEnd = contentStart;
 
-            // Buscar el inicio del boundary en las siguientes líneas
             size_t nextLinePos = requestBody.find("\r\n", contentStart);
             while (nextLinePos != std::string::npos)
 			{
                 size_t boundaryLineStart = requestBody.find(boundaryStartPattern, nextLinePos + 2);
                 if (boundaryLineStart == nextLinePos + 2)
 				{
-                    // Encontramos el inicio del boundary, ahora retrocedemos para eliminar toda la línea
-                    contentEnd = nextLinePos; // Ajustar contentEnd para eliminar la línea del boundary
+                    contentEnd = nextLinePos;
                     break;
                 }
-                // Mover al inicio de la siguiente línea
                 nextLinePos = requestBody.find("\r\n", nextLinePos + 1);
             }
             return requestBody.substr(contentStart, contentEnd - contentStart);
@@ -377,29 +295,17 @@ std::string processChunks(const std::string& chunkedData)
     std::string line;
     while (std::getline(stream, line))
 	{
-        // Elimina el '\r' al final de la línea si está presente
         if (!line.empty() && line[line.size() - 1] == '\r')
             line.erase(line.size() - 1);
 
-        // Convierte la longitud de hexadecimal a decimal
         unsigned int length = std::strtoul(line.c_str(), NULL, 16);
 
-        // Si la longitud es 0, se alcanzó el final de los chunks
         if (length == 0)
             break;
 
-        // Lee el contenido del chunk
-        std::vector<char> buffer(length + 2); // +2 para el \r\n final
+        std::vector<char> buffer(length + 2);
         stream.read(&buffer[0], length + 2);
-
-        // Añade el contenido al resultado, ignorando los últimos dos caracteres (\r\n)
         result.append(buffer.begin(), buffer.end() - 2);
     }
     return result;
 }
-
-// curl -X  POST -d "ARGUMENTS" http://localhost:8080/cgi-bin/"program" //CGI
-// curl -X  POST -d "name=DaniPedrosa&age=38" http://localhost:8080/upload/test1 //query string
-// curl -X POST -F "file=@/workspaces/webserv/webserv42/docs/aaa.txt" http://localhost:8080/upload/ // txt upload
-// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '{"clave": "valor"}' // chunked json
-// curl -X POST http://localhost:8080/upload/ -H "Content-Type: application/json" -H "Transfer-Encoding: chunked" -d '[{"clave": "valor1"}, {"clave": "valor2"}, {"clave": "valor3"}]' // chunked jsons

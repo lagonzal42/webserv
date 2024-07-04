@@ -85,7 +85,7 @@ void	WebServer::startSignals(void)
 {
 	signal(SIGINT, signalIntHandle);
 	signal(SIGQUIT, signalQuitHandle);
-	signal(SIGTSTP, signalStopHandle);
+	//signal(SIGTSTP, signalStopHandle);
 
 }
 
@@ -304,6 +304,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 
 int WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
+	std::cout << BLUE << response << RESET<< std::endl;
 	int sentBytes = send(clientSockets[vectorPos], response.c_str(), response.length(), 0);
 	if (sentBytes == -1 || sentBytes == 0)
 	{

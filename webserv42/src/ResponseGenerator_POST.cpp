@@ -102,8 +102,9 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
 {
     std::string response;
-    static std::vector<char> RequestCopy;
+    static std::string chunkUnion;
     std::string requestBody = req.getBody();
+    bool endChunk = false;
 
 	std::string filename = getFilename(req.getBody());
 	if (filename.empty()) {
@@ -111,29 +112,40 @@ std::string ResponseGeneratorPOST::postChunkedResponse(Request& req)
         ss << std::time(0);
         filename = "./docs/upload/chunked.txt";
     }
-	std::ofstream temp_file(filename.c_str());
 
-    for (std::string::iterator it = requestBody.begin(); it != requestBody.end(); ++it) {
-        RequestCopy.push_back(*it);
-    }
-
-    for (size_t i = 0; i < RequestCopy.size(); i += CHUNK_SIZE) {
-        char* chunk = &RequestCopy[i];
-        size_t chunkSize = CHUNK_SIZE;
-        if (i + CHUNK_SIZE > RequestCopy.size()) {
-            chunkSize = RequestCopy.size() - i;
+    while (1)
+    {
+        std::string chunkSize;
+        size_t limitPos = requestBody.find("\r\n");
+        std::cout << limitPos << std::endl;
+        if (limitPos != std::string::npos)
+            chunkSize = requestBody.substr(0, limitPos);
+        int decimal = std::strtol(chunkSize.c_str(), NULL, 16);
+        if (decimal == 0)
+        {
+            endChunk = true;
+            break;
         }
-
-        std::string chunkStr(chunk, chunk + chunkSize);
-        std::string chunkContent = processChunks(chunkStr);
-		temp_file << chunkContent;
-
-        response += "HTTP/1.1 100 Continue\r\n\r\n" + chunkContent;
+        else
+        {
+            chunkUnion.append(requestBody.substr(limitPos + 2, decimal));
+            requestBody = requestBody.substr(decimal + limitPos + 4);
+        }
     }
-	temp_file.close();
-    std::stringstream ss;
-    ss << response.size();
-    response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + ss.str() + "\r\n\r\n" + response;
+
+    if (!endChunk)
+    {
+        response = "HTTP/1.1 100 Continue\r\n\r\n";
+        req.setKeepAlive(true);
+    }
+    else
+    {
+	    std::ofstream temp_file(filename.c_str());
+        temp_file << chunkUnion;
+	    temp_file.close();
+        chunkUnion.clear();
+        response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 0\r\n\r\n";
+    }
     return response;
 }
 

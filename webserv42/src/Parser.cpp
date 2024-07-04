@@ -390,13 +390,15 @@ void	Parser::parseByLine(std::string const & line)
 		return ;
 
 	// When you find the keyword "server", you will enter to the serverBlock
-	if (line.find("server") != std::string::npos && line.find('{') != std::string::npos)
+	if (line.find("server ") != std::string::npos && line.find('{') != std::string::npos)
 	{
 		inServerBlock = true; // Start of a new block
 		serverBlock += line; // Initialize the server block with the current line
 		serverBlock += "\n";
 		return;
 	}
+	else if (line.find("server ") != std::string::npos && (line.find('{') == std::string::npos))
+		throw std::runtime_error("The configuration file form is not correct" + line);
 	else if (line.find("location") != std::string::npos && line.find('{') != std::string::npos)
 	{
 		inLocationBlock = true; // Start of a new block
@@ -420,7 +422,13 @@ void	Parser::parseByLine(std::string const & line)
 			if (this->_serversDefault.empty())
 				this->_serversDefault[tempServer.name] = newServer;
 			else
+			{
+				if (this->_servers.find(tempServer.name) != this->_servers.end())
+				{
+					throw std::runtime_error("Duplicated port encountered: " + tempServer.name);
+				}
 				this->_servers[tempServer.name] = newServer;
+			}
 			// --- Initialization for the next block --- //
 			inServerBlock = false;
 			serverBlock = "";
@@ -450,38 +458,6 @@ void	Parser::parseByLine(std::string const & line)
 
 bool	Parser::parse( std::string const & conf )
 {
-	//
-	// --- To check before make servers
-	//
-	// std::ifstream	configFile2(conf.c_str());
-	// if (!configFile2.is_open())
-	// {
-	// 	throw std::runtime_error("Failed to open config file: " + conf);
-	// 	// std::cerr << RED "Failed to open config file: " << _conf_file << RESET << std::endl;
-	// }
-	// std::string checker;
-	// std::string isPort = "";
-	// while (std::getline(configFile2, checker))
-	// {
-	// 	if (checker.find("listen") != std::string::npos && checker.find('#') == std::string::npos)
-	// 	{
-	// 		std::cout << "checker: " << checker << std::endl;
-	// 		isPort = Utils::extractNumbers(checker);
-	// 	}
-	// }
-	// configFile2.close();
-	// std::cout << "isPort: " << isPort << std::endl;
-	// if (isPort == "")
-	// {
-	// 	std::cout << "isport is empty" << std::endl;
-	// 	throw std::runtime_error("There is no port in config file: " + conf);
-	// }
-
-	//
-	// --- To check before make servers
-	//
-
-	// std::cout << "I should not be here!" << std::endl;
 	std::ifstream	configFile(conf.c_str());
 	if (!configFile.is_open())
 	{

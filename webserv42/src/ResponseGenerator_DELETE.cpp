@@ -50,14 +50,14 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 	std::string	fullPath = ResponseGenerator::parsePath(currentSer.root, "", req.getPath());
 
 // test print
-	std::cout << YELLOW "fullPath: " << fullPath << RESET << std::endl;
-	std::cout << "req method: " << req.getMethod() << std::endl;
-	std::cout << "location method: ";
+	// std::cout << YELLOW "fullPath: " << fullPath << RESET << std::endl;
+	// std::cout << "req method: " << req.getMethod() << std::endl;
+	// std::cout << "location method: ";
 // test print
 
 	for (std::vector<std::string>::const_iterator it = currentLoc.methods.begin(); it != currentLoc.methods.end(); ++it)
-		std::cout << *it << " ";
-	std::cout << std::endl;
+		// std::cout << *it << " ";
+	// std::cout << std::endl;
 
 	// Check if the request method is allowed in config
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) != currentLoc.methods.end())
@@ -67,7 +67,7 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 		{
 			if (remove(fullPath.c_str()) == 0)
 			{
-				std::cout << CYAN "removed successfully" RESET << std::endl;
+				// std::cout << CYAN "removed successfully" RESET << std::endl;
 				response = generateHttpResponse("200 OK", "File Deleted", "The requested file has been deleted successfully.");
 				// response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 20";
 				// response.append("\r\n\r\n");
@@ -75,13 +75,13 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 			}
 			else
 			{
-				std::cout << RED "failed to remove file: forbiden" RESET << std::endl;
+				// std::cout << RED "failed to remove file: forbiden" RESET << std::endl;
 				response = ResponseGenerator::errorResponse(FORBIDEN, currentSer);
 			}
 		}
 		else
 		{
-			std::cout << RED "failed to remove file: not found" RESET << std::endl;
+			// std::cout << RED "failed to remove file: not found" RESET << std::endl;
 			response = ResponseGenerator::errorResponse(NOT_FOUND, currentSer);
 		}
 	}
@@ -90,6 +90,6 @@ std::string ResponseGeneratorDELETE::generateDeleteResponse(Request & req, const
 		std::cerr << RED "Method not allowed" RESET << std::endl;
 		response = ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentSer);
 	}
-	std::cout << response << std::endl;
+	// std::cout << response << std::endl;
 	return response;
 }

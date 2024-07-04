@@ -97,7 +97,7 @@ int Utils::pathIsFile( const std::string& path )
 	}
 	else
 	{
-		std::cout << GREEN "doesn't exist???" RESET << std::endl;
+		// std::cout << GREEN "doesn't exist???" RESET << std::endl;
 
 		return 3; // stat failed, path likely does not exist
 	}
@@ -113,12 +113,4 @@ std::string Utils::getExtension(const std::string &cleanPath)
 	else
 		extension = "";
 	return (extension);		
-}
-
-
-// --- Member functions --- //
-
-void debug(std::string str)
-{
-	std::cout << str << std::endl;
 }

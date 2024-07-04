@@ -34,7 +34,6 @@ int Request::readRequest(int client_socket)
 	while (BUFFER_SIZE == valread)
 	{
 		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
-		std::cout << GREEN << valread << RESET << std::endl;
 		if (valread < 0)
 		{
 			std::cerr << "Error on read" << std::endl;
@@ -44,15 +43,9 @@ int Request::readRequest(int client_socket)
 		else
 			requestStr.append(std::string(buffer, valread));
 	}
-
-    std::cout << RED << requestStr << RESET << std::endl;
-
 	size_t pos = requestStr.find("\r\n\r\n");
 	if (pos != std::string::npos)
-	{
-		std::cout << MAGENTA << requestStr.substr(pos + 4) << RESET << std::endl;
 		_body.append(requestStr.substr(pos + 4));
-	}
 
 	std::istringstream reqStream(requestStr);
 	std::string line;
@@ -92,7 +85,6 @@ int Request::readRequest(int client_socket)
 		{
 			std::string connection;
 			std::getline(line_ss, connection);
-			std::cout << GREEN << connection << RESET << std::endl;
 			_keepAlive = (connection == " keep-alive\r") ? true : false; //the cconnection needs to be kept alive?
 		}
 		else if (title == "Transfer-Encoding")
@@ -120,7 +112,6 @@ int Request::readRequest(int client_socket)
 		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
 		_body.append(std::string(buffer, valread));
 	}
-
 	return 0;
 }
 

@@ -49,6 +49,7 @@ class WebServer
 		void	startSignals(void);
 		static void signalQuitHandle(int);
 		static void signalIntHandle(int);
+		static void signalStopHandle(int);
 		bool	initializeSockets();
 		void	initializeEnvp(char **originalEnvp);
 		void	acceptConnection(int servVecPos);

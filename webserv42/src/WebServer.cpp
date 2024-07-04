@@ -60,10 +60,15 @@ bool WebServer::stopSignal = false;
 void WebServer::signalIntHandle(int)
 {
 	stopSignal = true;
-	std::cout << "Sigint detected" << std::endl;
+	std::cerr << "Sigint detected" << std::endl;
 }
 
 void WebServer::signalQuitHandle(int)
+{
+	stopSignal = true;
+}
+
+void WebServer::signalStopHandle(int)
 {
 	stopSignal = true;
 }
@@ -72,18 +77,18 @@ void	WebServer::startSignals(void)
 {
 	signal(SIGINT, signalIntHandle);
 	signal(SIGQUIT, signalQuitHandle);
+	signal(SIGTSTP, signalStopHandle);
+
 }
 
 bool	WebServer::initializeSockets(void)
 {
 	std::map<std::string, Parser::Server>::const_iterator server_iter;
 	int yes = 1;
-	debug("initializing sockets");
 	for (server_iter = config.getServers().begin(); server_iter != config.getServers().end(); ++server_iter)
 	{
 		const Parser::Server &serv = server_iter->second;
 		int port = Utils::obtainIntFromStr(serv.port);
-		debug("Initializing port " + serv.port);
 		serverSockets.push_back(socket(AF_INET, SOCK_STREAM, 0));
 		if (serverSockets.back() == -1)
 		{
@@ -142,12 +147,12 @@ void	WebServer::serverLoop(void)
 	{
 		// std::cout << LGREEN "counter: " << counter << RESET << std::endl;
 		int events = poll(&pollFDS[0], pollFDS.size(), 5000);
-		std::cout << "Polled" << std::endl;
+		// std::cout << "Polled" << std::endl;
 		if (events > 0)
 		{
 			for (size_t i = 0; i < pollFDS.size(); i++)
 			{
-				std::cout << "Iterating" << std::endl;
+				// std::cout << "Iterating" << std::endl;
 				std::vector<int>::iterator servSockPos = std::find(serverSockets.begin(), serverSockets.end(), pollFDS[i].fd);
 				if (pollFDS[i].revents & POLLIN)
 				{
@@ -165,7 +170,7 @@ void	WebServer::serverLoop(void)
 						{
 							requests[vectorPos].setKeepAlive(false);
 							cleanVectors(vectorPos);
-							std::cout << "Empty request" << std::endl;
+							// std::cout << "Empty request" << std::endl;
 						}
 						else
 							pollFDS[i].events = POLLOUT;
@@ -181,12 +186,12 @@ void	WebServer::serverLoop(void)
 					pollFDS[i].events = POLLIN;
 					cleanVectors(cliVectorPos);
 				}
-				std::cout << "End of iteration" << std::endl;
+				// std::cout << "End of iteration" << std::endl;
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
 		else if (events == 0)
 		{
-			std::cout << "No event detected" << std::endl;
+			// std::cout << "No event detected" << std::endl;
 		}
 		else // Maybe it's necessarry?
 		{
@@ -202,21 +207,27 @@ void	WebServer::acceptConnection(int vectorPos)
 	socklen_t			clientAddrLen = sizeof(clientAddr);
 
 	int	clientSocket = accept(serverSockets[vectorPos], (struct sockaddr *)&clientAddr, &clientAddrLen);
-	
-	pollfd newPollFD;
-	newPollFD.fd = clientSocket;
-	newPollFD.events = POLLIN;
-	pollFDS.push_back(newPollFD);
-	
-	clientSockets.push_back(clientSocket);
-	requests.push_back(Request());
+
+	if (clientSocket != -1)
+	{
+		pollfd newPollFD;
+		newPollFD.fd = clientSocket;
+		newPollFD.events = POLLIN;
+		pollFDS.push_back(newPollFD);
+		
+		clientSockets.push_back(clientSocket);
+		requests.push_back(Request());
+		std::cout << "Client socket created" << std::endl;
+	}
+	else
+		std::cerr << "Error on socket creation" << std::endl;
 }
 
 int WebServer::readRequest(int cliVecPos)
 {
 	if (requests[cliVecPos].readRequest(clientSockets[cliVecPos]))
 	{
-		std::cout << "Failed reading the request from the client socket" << std::endl;
+		std::cerr << "Failed reading the request from the client socket" << std::endl;
 		cleanVectors(cliVecPos);
 		return(1);
 	}
@@ -227,17 +238,12 @@ std::string WebServer::buildResponse(int cliVecPos)
 {
 	std::string	vec[] = {"GET", "POST", "DELETE"};
 
-	debug(RED);
-	debug("Gonna build reponse in Webserver::buildResponse");
-	debug(RESET);
-
-	requests[cliVecPos].print();
 
 	try
 	{
 		const Parser::Location& currentLoc = config.getCurLocation(requests[cliVecPos].getPath(), requests[cliVecPos].getPort());
-		// if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
-		//  	return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
+		if (currentLoc.max_body_size != 0  && requests[cliVecPos].getBody().size() > currentLoc.max_body_size)
+		  	return (ResponseGenerator::errorResponse(PAYLOAD_TOO_LARGE, config.getServer(requests[cliVecPos].getPort())));
 		// if (requests[cliVecPos].getVersion() != "HTTP/1.1")
 		//  	return (ResponseGenerator::errorResponse(HTTP_VERSION_NOT_SUPPORTED, config.getServer(requests[cliVecPos].getPort())));
 	}
@@ -246,7 +252,7 @@ std::string WebServer::buildResponse(int cliVecPos)
 		std::cerr << e.what() << " error catched " << '\n';
 		if (requests[cliVecPos].getMethod() != "HTTP/1.1")
 		{
-			std::cout << "HTTP version not supported" << std::endl;
+			std::cerr << "HTTP version not supported" << std::endl;
 		}
 	}
 	
@@ -261,29 +267,26 @@ std::string WebServer::buildResponse(int cliVecPos)
 	std::string responseDelete;
 	Request& req = requests[cliVecPos];
 	req.print();
-	std::cout << i << std::endl;
 	switch(i)
 	{
 		case(GET):
-			std::cout << "Get Response" << std::endl;
+			// std::cout << "Get Response" << std::endl;
 			response = ResponseGenerator::generateGetResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp);
 			break;
 		case(POST):
-			std::cout << "Post Response" << std::endl;
+			// std::cout << "Post Response" << std::endl;
 			response = ResponseGeneratorPOST::generatePostResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()), envp, cliVecPos);
 			break;
 		case(DELETE):
-			std::cout << "Delete Response" << std::endl;
+			// std::cout << "Delete Response" << std::endl;
 			// static std::string generateDeleteResponse(Request & req, const Parser::Location & currentLoc, Parser::Server & currentSer, const std::string &fullPath);
 			response = ResponseGeneratorDELETE::generateDeleteResponse(req, config.getCurLocation(req.getPath(), req.getPort()), config.getServer(req.getPort()));
 			break;
 		case(INVALID_METHOD):
-			std::cout << "Invalid method response" << std::endl;
+			// std::cout << "Invalid method response" << std::endl;
 			response = ResponseGenerator::errorResponse(METHOD_NOT_IMPLEMENTED, config.getServer(req.getPort()));
 			break;
 	}
-
-	//std::cout << "response " << response << std::endl;
 	return(response);
 }
 
@@ -303,9 +306,8 @@ void	WebServer::cleanVectors(int vectorPos)
 	requests[vectorPos].print();
 	while (clientSockets[vectorPos] != pollFDS[i].fd)
 		i++;
-	if (requests[vectorPos].getConection() == 0)
+	if (requests[vectorPos].getConection() == 0) //requested to keep conection alive
 	{
-		//requests[vectorPos].clear();
 		close(pollFDS[i].fd);
 		pollFDS.erase(pollFDS.begin() + i);
 		clientSockets.erase(clientSockets.begin() + vectorPos);
@@ -313,10 +315,7 @@ void	WebServer::cleanVectors(int vectorPos)
 		std::cout << "Closed connection with client" << std::endl;
 	}
 	else
-	{
-		std::cout << "Request cleared" << std::endl;
 		requests[vectorPos].clear();
-	}
 }
 
 void	WebServer::serverClose(void)
@@ -325,6 +324,8 @@ void	WebServer::serverClose(void)
 		close(*it);
 	for (std::vector<int>::iterator it = serverSockets.begin(); it != serverSockets.end(); it++)
 		close(*it);
+
+	std::cout << "Closing server" << std::endl;
 	
 	delete	MimeDict::getMimeDict();
 }

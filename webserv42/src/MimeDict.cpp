@@ -10,8 +10,6 @@ MimeDict* MimeDict::_dict = NULL;
  */
 MimeDict::MimeDict(void)
 {
-    std::cout << "The mime dict is being created" << std::endl;
-    
     _mime[".html"] = "text/html";
     _mime[".txt"] = "text/plain";
     _mime[".css"] = "text/css";
@@ -31,9 +29,7 @@ MimeDict::MimeDict(void)
 }
 
 MimeDict::~MimeDict(void)
-{
-    std::cout << "The mime dict was destroyed" << std::endl;
-}
+{}
 
 MimeDict* MimeDict::getMimeDict(void)
 {

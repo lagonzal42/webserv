@@ -319,7 +319,7 @@ std::string	Parser::extractWord(std::string const & str, std::string const & key
 	return ret;
 }
 
-void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & line)
+bool	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & line)
 {
 	std::string	info[4] = {"listen", "server_name", "root", "error_page"};
 	int	i = 0;
@@ -337,10 +337,11 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 		if (temp.find(info[i]) != std::string::npos)
 			break ;
 	}
-	// if (i == 2 && !(tempServer->root.empty()))
-	// {
-	// 	throw std::runtime_error("You should not have more than one root: " + temp);
-	// }
+	if (i == 2 && !(tempServer->root.empty()))
+	{
+		return false;
+		// throw std::runtime_error("You should not have more than one root: " + temp);
+	}
 	switch (i)
 	{
 	case 0:
@@ -362,6 +363,7 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 		// std::cout << RED << temp << ": It's not in server block. I will put an exception" RESET << std::endl;
 		break ;
 	}
+	return true;
 }
 
 	/*******/
@@ -472,7 +474,8 @@ void	Parser::parseByLine(std::string const & line)
 			tempServer = Server();
 			return ;
 		}
-		obtainServerInfo(&tempServer, line);
+		if (!obtainServerInfo(&tempServer, line))
+			throw std::runtime_error("obtainServerInfo false: " + line);
 	} // inServerBlock && !inLocationBlock
 	if (inLocationBlock)
 	{

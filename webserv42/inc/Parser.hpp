@@ -78,7 +78,8 @@ class Parser
 			Location	processLocation( std::string const & block );
 			Server		processServer( Server tempServer );
 			// Server		processServer( std::string const & block );
-			void	obtainServerInfo(Server * tempServer, std::string const & line);
+			bool	obtainServerInfo(Server * tempServer, std::string const & line);
+			// void	obtainServerInfo(Server * tempServer, std::string const & line);
 
 			std::string	extractNumbers(std::string const & str);
 			std::string	extractWord(std::string const & str, std::string const & key);

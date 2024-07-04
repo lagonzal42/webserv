@@ -10,3 +10,6 @@ webserv
 .vscode/*
 .build/*
 */.build/*
+test_lagonzal/*
+tests_nozomi/*
+test_vzayas/*

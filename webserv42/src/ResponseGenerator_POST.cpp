@@ -78,11 +78,11 @@ std::string ResponseGeneratorPOST::parsePath(std::string servPath, std::string l
 			pathPartsVec.push_back(pathPart);
 	}
 
-	std::cout << BLUE;
-	for (size_t i = 0; i < pathPartsVec.size(); i++)
-		std::cout << pathPartsVec[i] << std::endl;
+	// std::cout << BLUE;
+	// for (size_t i = 0; i < pathPartsVec.size(); i++)
+	// 	std::cout << pathPartsVec[i] << std::endl;
 	
-	std::cout << RESET;
+	// std::cout << RESET;
 
 	std::vector<std::string> cleanPathVec;
 	for (std::vector<std::string>::iterator it = pathPartsVec.begin(); it != pathPartsVec.end(); it++)
@@ -115,15 +115,7 @@ std::string	ResponseGeneratorPOST::generatePostResponse(Request& req, const Pars
 {
 	(void)cliVecPos;
 
-	debug(RED);
-	debug("ResponseGeneratorPOST::generatePostResponse");
-	debug("location name:");
-	debug(currentLoc.name);
-	debug(RESET);
-
-	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
 	std::string	cleanPath = ResponseGeneratorPOST::parsePath(currentServ.root, "", req.getPath());
-	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
@@ -164,7 +156,7 @@ std::string	ResponseGeneratorPOST::postResponse(Request& req, std::string& clean
 			ofs << fileContent;
 			ofs.flush(); // Asegura que todo el contenido se escribe en el archivo
 			ofs.close();
-			std::cout << "Saved file: " << filePath << std::endl;
+			// std::cout << "Saved file: " << filePath << std::endl;
 		}
 
 		std::stringstream ss;
@@ -316,7 +308,7 @@ std::string	ResponseGeneratorPOST::postCgiResponse(const Parser::Location& curre
 		}
         else
 		{
-			std::cout << "Timeout reached" << std::endl;
+			std::cerr << "Timeout reached" << std::endl;
 			kill(id, SIGKILL);
 			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
 		}

@@ -73,13 +73,6 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 			pathPartsVec.push_back(pathPart);
 	}
 
-
-	std::cout << BLUE;
-	for (size_t i = 0; i < pathPartsVec.size(); i++)
-		std::cout << pathPartsVec[i] << std::endl;
-	
-	std::cout << RESET;
-
 	std::vector<std::string> cleanPathVec;
 	for (std::vector<std::string>::iterator it = pathPartsVec.begin(); it != pathPartsVec.end(); it++)
 	{
@@ -109,15 +102,7 @@ std::string ResponseGenerator::parsePath(std::string servPath, std::string locPa
 
 std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::Location& currentLoc, const Parser::Server& currentServ, std::vector<char *>& envp)
 {
-	debug(RED);
-	debug("ResponseGenerator::generateGetResponse");
-	debug("location name:");
-	debug(currentLoc.name);
-	debug(RESET);
-
-	std::cout << "Gonna generate the clean path with " + currentServ.root + " " + currentLoc.root + " " + req.getPath() << std::endl;
 	std::string	cleanPath = ResponseGenerator::parsePath(currentServ.root, "", req.getPath());
-	std::cout << "Clean path is " << cleanPath << std::endl;
 
 	if (std::find(currentLoc.methods.begin(), currentLoc.methods.end(), req.getMethod()) == currentLoc.methods.end())
 	{
@@ -125,25 +110,13 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
 	else if (currentLoc.name == "/redir/")
-	{
-		std::cout << "Processing Redirection GET request" << std::endl;
 		return (ResponseGenerator::getRedirResponse(currentLoc.redirect));
-	}
 	else if (currentLoc.name == "/cgi/")
-	{
-		std::cout << "Processing CGI GET request" << std::endl;
 		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));
-	}
 	else if (currentLoc.autoindex)
-	{
-		std::cout << "Processing autoindex GET request" << std::endl;
 		return (ResponseGenerator::getAutoindexResponse(currentLoc, currentServ, cleanPath));
-	}
 	else
-	{
-		std::cout << "Processing file GET request" << std::endl;
 		return (ResponseGenerator::getFileResponse(currentLoc, currentServ, cleanPath));
-	}
 }
 
 std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLoc, const Parser::Server& currentServ, std::string& cleanPath)
@@ -162,8 +135,7 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	}
 	
 	responseStatus << 200 << " OK";
-	std::cout << "cleanPath is " << cleanPath << std::endl;
-	
+
 	try
 	{
 		std::ifstream file(cleanPath.c_str(), std::ios::in | std::ios::binary);
@@ -190,7 +162,6 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 		std::string extension = cleanPath.substr(extensionPoint);
 		MimeDict* MimeDict = MimeDict::getMimeDict();
 		std::map<std::string, std::string> mime = MimeDict->getMap();
-		std::cout << "extesion is " << extension << std::endl;
 		try
 		{
 			contentType = mime[extension];
@@ -203,9 +174,6 @@ std::string ResponseGenerator::getFileResponse(const Parser::Location& currentLo
 	}
 
 	response = "HTTP/1.1 " + responseStatus.str() + "\r\nContent-Type: " + contentType + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + content;
-	
-	// std::cout << BLUE << response << RESET <<std::endl;
-
 	return ((response));
 }
 
@@ -239,16 +207,13 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Location& curr
 	while (file)
 	{
 		std::string fileName = std::string(file->d_name);
-		std::cout << YELLOW "fileName " RESET << fileName << std::endl;
 		if (Utils::pathIsFile(cleanPath + fileName) == 0)
-		{
-			std::cout << fileName << " is a directory" << std::endl;
 			fileName += "/";
-		}
 		responseBody += "\n<li><a href=\"" + fileName + "\">" + fileName + "</a></li>";
 		file = readdir(directory);
 	}
 	closedir(directory);
+	
 	std::stringstream ss;
 	ss << responseBody.size();
 	response = responseHead + "\r\nContent-Length: " + ss.str() + "\r\n\r\n" + responseBody;
@@ -326,7 +291,6 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		waitpid(id, &status, WNOHANG);
 		if (WIFEXITED(status)) //child exited
 		{
-			std::cout << RED << "Child exited" << RESET << std::endl;
 			if (WEXITSTATUS(status) != 0) //error exit status
 				response = ResponseGenerator::errorResponse(INTERNAL_SERVER_ERROR, currentServ);
 			else //normal exit status (0)
@@ -360,7 +324,7 @@ std::string	ResponseGenerator::getCgiResponse(const Parser::Location& currentLoc
 		}
 		else
 		{
-			std::cout << "Timeout reached" << std::endl;
+			std::cerr << "Timeout reached" << std::endl;
 			kill(id, SIGKILL);
 			return (ResponseGenerator::errorResponse(TIMEOUT, currentServ));
 		}

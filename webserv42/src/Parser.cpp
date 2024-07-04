@@ -191,7 +191,7 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 		ret.locations = def.locations;
 		ret.name = def.name;
 		ret.port = def.port;
-		ret.root = def.root;
+		// ret.root = def.root;
 		ret.error_pages = def.error_pages;
 	}
 // --- DELETE --- //
@@ -208,10 +208,43 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 		ret.name = tempServer.name;
 	if (!tempServer.port.empty())
 		ret.port = tempServer.port;
+	//Im on this -----//
 	if (!tempServer.root.empty())
+	{
+		// std::cout << "temp root: " << tempServer.root << std::endl;
+		// if (!ret.root.empty())
+		// {
+		// 	std::cout << "root: " << ret.root << std::endl;
+		// 	throw std::runtime_error("We should not have more than one root: " + ret.root);
+		// }
 		ret.root = tempServer.root;
-	if (!tempServer.error_pages.empty())
+	}
+	
+	//Im on this -----//
+
+
+	if (!tempServer.error_pages.empty() && this->_serversDefault.empty())
 		ret.error_pages = tempServer.error_pages;
+	else if (!tempServer.error_pages.empty()/* && !(this->_serversDefault.empty())*/)
+	{
+		// ret.error_pages = tempServer.error_pages;
+		std::map<int, std::string>::const_iterator tmp_it;
+		for (tmp_it = tempServer.error_pages.begin(); tmp_it != tempServer.error_pages.end(); ++tmp_it)
+		{
+			// std::cout << "tmp: " << tmp_it->first << std::endl;
+			std::map<int, std::string>::const_iterator ret_it;
+			for (ret_it = ret.error_pages.begin(); ret_it != ret.error_pages.end(); ++ret_it)
+			{
+				// std::cout << "ret: " << ret_it->first << std::endl;
+				if (ret_it->first == tmp_it->first)
+					break ;
+			}
+			if (ret_it != ret.error_pages.end())
+			{
+				ret.error_pages[ret_it->first] = tmp_it->second;
+			}
+		}
+	}
 	ret.locations = tempServer.locations;
 
 	//to check if the locations incudes things that should not be empty
@@ -304,6 +337,10 @@ void	Parser::obtainServerInfo(Parser::Server * tempServer, std::string const & l
 		if (temp.find(info[i]) != std::string::npos)
 			break ;
 	}
+	// if (i == 2 && !(tempServer->root.empty()))
+	// {
+	// 	throw std::runtime_error("You should not have more than one root: " + temp);
+	// }
 	switch (i)
 	{
 	case 0:

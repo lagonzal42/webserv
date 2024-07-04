@@ -240,6 +240,11 @@ std::string	ResponseGenerator::getAutoindexResponse(const Parser::Location& curr
 	{
 		std::string fileName = std::string(file->d_name);
 		std::cout << YELLOW "fileName " RESET << fileName << std::endl;
+		if (Utils::pathIsFile(cleanPath + fileName) == 0)
+		{
+			std::cout << fileName << " is a directory" << std::endl;
+			fileName += "/";
+		}
 		responseBody += "\n<li><a href=\"" + fileName + "\">" + fileName + "</a></li>";
 		file = readdir(directory);
 	}

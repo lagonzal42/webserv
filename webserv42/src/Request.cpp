@@ -110,6 +110,8 @@ int Request::readRequest(int client_socket)
 	while (_body.size() < _contentLength)
 	{
 		valread = recv(client_socket, buffer, BUFFER_SIZE, 0);
+		if (valread == -1)
+			return (1);
 		_body.append(std::string(buffer, valread));
 	}
 	return 0;

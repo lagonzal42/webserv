@@ -49,6 +49,14 @@ bool WebServer::initialize(char **envp, std::string configFile)
 		return (1);
 	}
 
+	std::cout << config << std::endl;
+
+	// std::map<std::string, Parser::Server>::const_iterator server_iter;
+	// for (server_iter = config.getServers().begin(); server_iter != config.getServers().end(); ++server_iter)
+	// {
+	// 	std::find(server_iter, config.getServers().end(), )
+	// }
+
 	if (initializeSockets())
 		return (1);
 	initializeEnvp(envp);
@@ -165,8 +173,8 @@ void	WebServer::serverLoop(void)
 					{
 						std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 						int vectorPos = cliSockPos - clientSockets.begin();
-						readRequest(vectorPos);
-						if (requests[vectorPos].empty())
+						
+						if (readRequest(vectorPos) == 1 || requests[vectorPos].empty())
 						{
 							requests[vectorPos].setKeepAlive(false);
 							cleanVectors(vectorPos);
@@ -182,16 +190,20 @@ void	WebServer::serverLoop(void)
 					std::vector<int>::iterator cliSockPos = std::find(clientSockets.begin(), clientSockets.end(), pollFDS[i].fd);
 					int cliVectorPos = cliSockPos - clientSockets.begin();
 					std::string response = buildResponse(cliVectorPos);
-					sendResponse(cliVectorPos , response);
+					if (sendResponse(cliVectorPos , response) == 1)
+					{
+						requests[cliVectorPos].setKeepAlive(false);
+						cleanVectors(cliVectorPos);
+						// std::cout << "Empty request" << std::endl;
+					}
 					pollFDS[i].events = POLLIN;
 					cleanVectors(cliVectorPos);
 				}
-				// std::cout << "End of iteration" << std::endl;
 			} // for (size_t i = 0; i < pollFDS.size(), i++)
 		} // if (events != 0)
 		else if (events == 0)
 		{
-			// std::cout << "No event detected" << std::endl;
+			std::cout << "No event detected" << std::endl;
 		}
 		else // Maybe it's necessarry?
 		{
@@ -290,13 +302,17 @@ std::string WebServer::buildResponse(int cliVecPos)
 	return(response);
 }
 
-void WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
+int WebServer::sendResponse(int vectorPos, std::string& response) //still implementing
 {
-	if (send(clientSockets[vectorPos], response.c_str(), response.length(), 0) == -1)
+	int sentBytes = send(clientSockets[vectorPos], response.c_str(), response.length(), 0);
+	if (sentBytes == -1 || sentBytes == 0)
+	{
 		std::cerr << "Send failed" << std::endl;
+		return (1);
+	}
 	else
-		std::cout << GREEN "Response sent successfully" RESET << std::endl;
-	
+		std::cout << GREEN "Response sent successfully" RESET << std::endl;	
+	return (0);
 }
 
 void	WebServer::cleanVectors(int vectorPos)

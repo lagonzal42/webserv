@@ -49,8 +49,6 @@ bool WebServer::initialize(char **envp, std::string configFile)
 		return (1);
 	}
 
-	std::cout << config << std::endl;
-
 	// std::map<std::string, Parser::Server>::const_iterator server_iter;
 	// for (server_iter = config.getServers().begin(); server_iter != config.getServers().end(); ++server_iter)
 	// {
@@ -278,7 +276,6 @@ std::string WebServer::buildResponse(int cliVecPos)
 	std::string response;
 	std::string responseDelete;
 	Request& req = requests[cliVecPos];
-	req.print();
 	switch(i)
 	{
 		case(GET):
@@ -320,7 +317,6 @@ void	WebServer::cleanVectors(int vectorPos)
 {
 	int i = 0;
 
-	requests[vectorPos].print();
 	while (clientSockets[vectorPos] != pollFDS[i].fd)
 		i++;
 	if (requests[vectorPos].getConection() == 0) //requested to keep conection alive

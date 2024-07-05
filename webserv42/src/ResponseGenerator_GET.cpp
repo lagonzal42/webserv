@@ -109,7 +109,7 @@ std::string	ResponseGenerator::generateGetResponse(Request& req, const Parser::L
 		std::cerr << "Method not allowed" << std::endl;
 		return (ResponseGenerator::errorResponse(METHOD_NOT_ALLOWED, currentServ));
 	}
-	else if (currentLoc.name == "/redir/")
+	else if (currentLoc.name == "/redirect/")
 		return (ResponseGenerator::getRedirResponse(currentLoc.redirect));
 	else if (currentLoc.name == "/cgi/")
 		return (ResponseGenerator::getCgiResponse(currentLoc, req, envp, currentServ, cleanPath));

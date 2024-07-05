@@ -20,6 +20,7 @@ Parser::Parser( void ): _conf_file("configurations/default.conf")
 	// std::cout << _conf_file << ": Called default constructor!" << std::endl;
 	Parser::parse(_conf_file);//error check
 	// std::cout << _conf_file << ": Called initialization parser!" << std::endl;
+
 }
 Parser::~Parser( void )
 {
@@ -551,6 +552,21 @@ bool	Parser::parse( std::string const & conf )
 	{
 		throw std::runtime_error("No port in file: " + conf);
 		// return false;
+	}
+	std::map<std::string, Server>::const_iterator it;
+	for (it = _servers.begin(); it != _servers.end(); it++)
+	{
+		size_t i = 0;
+		std::vector<Location> copy = it->second.locations;
+		for (; i != copy.size(); i++ )
+		{
+			size_t h = i + 1;
+			for (; h != copy.size(); h++)
+			{
+				if (copy[i].root == copy[h].root)
+					throw (std::runtime_error("Different locations can't have same root"));
+			}
+		}
 	}
 	return true;
 }

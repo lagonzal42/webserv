@@ -71,33 +71,19 @@ Parser::Location	Parser::processLocation( std::string const & block )
 //=== TEST ===//
 
 	//check if the location is defined in the default server
-	if (!this->_serversDefault.empty())
-	{
-		Parser::Server def = this->getDefServer().begin()->second;
-		std::vector<Parser::Location> & defLocations = def.locations;
-		for (std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it)
-		{
-			if (block.find(it->name) != std::string::npos)
-			{
-				ret = *it;
-				// --- DELETE --- //
-					// std::cout << GREEN "I found it! " << it->name << std::endl;
-					// std::cout << RESET << block << std::endl;
-					// std::cout << "ret.name: " << ret.name << std::endl;
-					// std::cout << "ret.root: " << ret.root << std::endl;
-					// std::cout << "ret.upload_path: " << ret.upload_path << std::endl;
-					// std::cout << "ret.cgi_path: " << ret.cgi_path << std::endl;
-					// std::cout << "ret.index: " << ret.index << std::endl;
-					// std::cout << "ret.methods: ";
-					// for (std::vector<std::string>::const_iterator it = ret.methods.begin(); it != ret.methods.end(); ++it)
-					// 	std::cout << *it << " ";
-					// std::cout << "\nret.autoindex: " << ret.autoindex << std::endl;
-					// std::cout << "ret.max_body_size: " << ret.max_body_size << std::endl;
-				// --- DELETE --- //
-				break ;
-			} // block.find(it->name) != std::string::npos
-		} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
-	} // !this->_serversDefault.empty()
+	// if (!this->_serversDefault.empty())
+	// {
+	// 	Parser::Server def = this->getDefServer().begin()->second;
+	// 	std::vector<Parser::Location> & defLocations = def.locations;
+	// 	for (std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it)
+	// 	{
+	// 		if (block.find(it->name) != std::string::npos)
+	// 		{
+	// 			ret = *it;
+	// 			break ;
+	// 		} // block.find(it->name) != std::string::npos
+	// 	} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
+	// } // !this->_serversDefault.empty()
 
 	std::istringstream iss(block);
 	std::string line;
@@ -121,9 +107,13 @@ Parser::Location	Parser::processLocation( std::string const & block )
 		switch (i)
 		{
 			case 0://location
+					if (!ret.name.empty())
+						throw std::runtime_error("processLocation: " + line);
 					ret.name = extractWord(line, info[i]);//location / {   ==> I have to remove {
 					break ;
-			case 1://method	
+			case 1://method
+					if (!(ret.methods.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					try
 					{
 						ret.methods = obtainMethod(line);
@@ -134,6 +124,8 @@ Parser::Location	Parser::processLocation( std::string const & block )
 					}
 					break ;
 			case 2://root
+					if (!(ret.root.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					ret.root = extractWord(line, info[i]);
 					break ;
 			case 3://autoindex ***I have to return bool
@@ -141,18 +133,28 @@ Parser::Location	Parser::processLocation( std::string const & block )
 						ret.autoindex = true;
 					break ;
 			case 4://upload_path
+					if (!(ret.upload_path.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					ret.upload_path = extractWord(line, info[i]);
 					break ;
 			case 5://redirect
+					if (!(ret.redirect.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					ret.redirect = extractWord(line, info[i]);
 					break ;
 			case 6://cgi_path
+					if (!(ret.cgi_path.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					ret.cgi_path = extractWord(line, info[i]);
 					break ;
 			case 7://index
+					if (!(ret.index.empty()))
+						throw std::runtime_error("processLocation: " + line);
 					ret.index = extractWord(line, info[i]);
 					break ;
 			case 8://max_body_size
+					if (ret.max_body_size != 0)
+						throw std::runtime_error("processLocation: " + line);
 					num = Utils::extractNumbers(line);
 					ret.max_body_size = obtainSizeFromStr(num);
 					break ;
@@ -161,6 +163,49 @@ Parser::Location	Parser::processLocation( std::string const & block )
 				// break ;
 		}
 	} // std::getline(iss, line)
+
+
+	// check if the location is defined in the default server and it's not defined
+	if (!this->_serversDefault.empty())
+	{
+		Parser::Server def = this->getDefServer().begin()->second;
+		std::vector<Parser::Location> & defLocations = def.locations;
+		for (std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it)
+		{
+			if (ret.name == it->name)
+			{
+				// std::string	name;
+				// std::string root; //root
+				// std::string	index; //index
+				// std::vector<std::string> methods; //method GET, POST OR DELETE
+				// std::string	cgi_path; //cgi_path
+				// std::string	upload_path; //upload_path
+				// std::string	redirect;
+				// bool		autoindex; // autoindex
+				// size_t		max_body_size; //max b
+				if (ret.root.empty() && !it->root.empty())
+					ret.root = it->root;
+				if (ret.index.empty() && !it->index.empty())
+					ret.index = it->index;
+				if (ret.methods.empty() && !it->methods.empty())
+					ret.methods = it->methods;
+				if (ret.cgi_path.empty() && !it->cgi_path.empty())
+					ret.cgi_path = it->cgi_path;
+				if (ret.upload_path.empty() && !it->upload_path.empty())
+					ret.upload_path = it->upload_path;
+				if (ret.redirect.empty() && !it->redirect.empty())
+					ret.redirect = it->redirect;
+				if (!ret.autoindex && it->autoindex)
+					ret.upload_path = true;
+				if (ret.max_body_size == 0 && !it->max_body_size != 0)
+					ret.max_body_size = it->max_body_size;
+				break ;
+			} // block.find(it->name) != std::string::npos
+		} // std::vector<Parser::Location>::iterator it = defLocations.begin(); it != defLocations.end(); ++it
+	} // !this->_serversDefault.empty()
+
+
+
 //=== TEST ===//
 	// std::cout << "ret.name: " << ret.name << std::endl;
 	// std::cout << "ret.root: " << ret.root << std::endl;
@@ -208,19 +253,9 @@ Parser::Server		Parser::processServer( Parser::Server tempServer )
 		ret.name = tempServer.name;
 	if (!tempServer.port.empty())
 		ret.port = tempServer.port;
-	//Im on this -----//
 	if (!tempServer.root.empty())
-	{
-		// std::cout << "temp root: " << tempServer.root << std::endl;
-		// if (!ret.root.empty())
-		// {
-		// 	std::cout << "root: " << ret.root << std::endl;
-		// 	throw std::runtime_error("We should not have more than one root: " + ret.root);
-		// }
 		ret.root = tempServer.root;
-	}
-	
-	//Im on this -----//
+
 
 
 	if (!tempServer.error_pages.empty() && this->_serversDefault.empty())
